@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.mutwiri</groupId>
 	<artifactId>licensemanager</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>license-manager</name>
 	<description>License manager application built on Spring Boot</description>
 	<url/>
@@ -18,6 +18,11 @@
 		<license/>
 	</licenses>
 	<developers>
+        <developer>
+            <id>mutwiri</id>
+            <name>Mutwiri</name>
+            <email>dev@patric.xyz</email>
+        </developer>
 		<developer/>
 	</developers>
 	<scm>
