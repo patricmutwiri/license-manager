@@ -1,19 +1,10 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
  *
  */
 
 package com.mutwiri.licensemanager.services.impl;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
 
 import com.mutwiri.licensemanager.entities.License;
 import com.mutwiri.licensemanager.entities.Organization;
@@ -23,6 +14,10 @@ import com.mutwiri.licensemanager.repository.OrganizationRepository;
 import com.mutwiri.licensemanager.repository.UserRepository;
 import com.mutwiri.licensemanager.services.EmailService;
 import com.mutwiri.licensemanager.services.LicenseService;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 public class LicenseServiceImpl implements LicenseService {

@@ -1,13 +1,13 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
  *
  */
 
 package com.mutwiri.licensemanager.services;
 
-import java.util.Map;
-
+import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -15,8 +15,7 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import com.mutwiri.licensemanager.entities.User;
-import com.mutwiri.licensemanager.repository.UserRepository;
+import java.util.Map;
 
 @Service
 public class UserService extends DefaultOAuth2UserService {

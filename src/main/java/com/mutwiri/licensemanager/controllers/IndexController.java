@@ -1,17 +1,18 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
  *
  */
 
 package com.mutwiri.licensemanager.controllers;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.mutwiri.licensemanager.entities.License;
+import com.mutwiri.licensemanager.entities.Organization;
+import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.repository.UserRepository;
+import com.mutwiri.licensemanager.services.LicenseService;
+import com.mutwiri.licensemanager.services.OrganizationService;
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,14 +23,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.mutwiri.licensemanager.entities.License;
-import com.mutwiri.licensemanager.entities.Organization;
-import com.mutwiri.licensemanager.entities.User;
-import com.mutwiri.licensemanager.repository.UserRepository;
-import com.mutwiri.licensemanager.services.LicenseService;
-import com.mutwiri.licensemanager.services.OrganizationService;
-
-import jakarta.persistence.EntityNotFoundException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 public class IndexController {

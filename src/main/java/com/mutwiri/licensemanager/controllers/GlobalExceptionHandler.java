@@ -1,12 +1,12 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz>
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ *
  */
 
 package com.mutwiri.licensemanager.controllers;
 
-import java.nio.file.AccessDeniedException;
-
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import jakarta.persistence.EntityNotFoundException;
+import java.nio.file.AccessDeniedException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
