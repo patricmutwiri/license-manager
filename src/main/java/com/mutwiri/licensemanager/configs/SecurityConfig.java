@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 1:29 AM
  *
  */
 
@@ -41,4 +41,7 @@ public class SecurityConfig {
                                 );
                 return http.build();
         }
+
+
+
 }
