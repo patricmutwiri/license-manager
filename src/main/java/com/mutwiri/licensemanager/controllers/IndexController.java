@@ -6,8 +6,6 @@
 
 package com.mutwiri.licensemanager.controllers;
 
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,6 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
@@ -32,6 +32,7 @@ import com.mutwiri.licensemanager.services.OrganizationService;
 @Controller
 public class IndexController {
 
+    private static final Logger logger = LoggerFactory.getLogger(IndexController.class);
     private final LicenseService licenseService;
     private final OrganizationService organizationService;
     private final UserRepository userRepository;
@@ -62,8 +63,10 @@ public class IndexController {
             return "redirect:/login";
         }
 
-        String sub = principal.getAttribute("sub") != null ? principal.getAttribute("sub").toString() : null;
-        String idAttribute = principal.getAttribute("id") != null ? principal.getAttribute("id").toString() : null;
+        Object subObj = principal.getAttribute("sub");
+        Object idObj = principal.getAttribute("id");
+        String sub = subObj != null ? subObj.toString() : null;
+        String idAttribute = idObj != null ? idObj.toString() : null;
         String providerId = sub != null ? sub : idAttribute;
 
         if (providerId == null) {
@@ -81,6 +84,7 @@ public class IndexController {
                     throw new IllegalStateException("User not found in database for providerId: " + providerId);
                 });
 
+        logger.info("Generating license for orgId: {} by user: {}", orgId, providerId);
         licenseService.generateLicense(user.getId(), orgId);
         return "redirect:/licenses?orgId=" + orgId;
     }
@@ -92,41 +96,32 @@ public class IndexController {
 
     @GetMapping("/licenses")
     public String licenses(@RequestParam(required = false) Long orgId, Model model) {
-        try {
-            List<License> licenses = orgId != null
-                    ? licenseService.getLicensesByOrganization(orgId)
-                    : List.of();
+        List<License> licenses = orgId != null
+                ? licenseService.getLicensesByOrganization(orgId)
+                : List.of();
 
-            List<Map<String, Object>> licenseData = new ArrayList<>();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            LocalDateTime now = LocalDateTime.now();
+        List<Map<String, Object>> licenseData = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDateTime now = LocalDateTime.now();
 
-            for (License l : licenses) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("id", l.getId());
-                map.put("key", l.getKey());
-                map.put("expiryFormatted", l.getExpiry() != null ? l.getExpiry().format(formatter) : "No Expiry");
-                map.put("active", l.getExpiry() != null && l.getExpiry().isAfter(now));
+        for (License l : licenses) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", l.getId());
+            map.put("key", l.getKey());
+            map.put("expiryFormatted", l.getExpiry() != null ? l.getExpiry().format(formatter) : "No Expiry");
+            map.put("active", l.getExpiry() != null && l.getExpiry().isAfter(now));
 
-                String name = "System User";
-                if (l.getUser() != null) {
-                    name = l.getUser().getName() != null && !l.getUser().getName().trim().isEmpty()
-                            ? l.getUser().getName()
-                            : l.getUser().getEmail();
-                }
-                map.put("userName", name);
-                licenseData.add(map);
+            String name = "System User";
+            if (l.getUser() != null) {
+                name = l.getUser().getName() != null && !l.getUser().getName().trim().isEmpty()
+                        ? l.getUser().getName()
+                        : l.getUser().getEmail();
             }
-
-            model.addAttribute("licenses", licenseData);
-            return "licenses";
-        } catch (Exception e) {
-            try (PrintWriter out = new PrintWriter(new FileWriter("error_log.txt", true))) {
-                e.printStackTrace(out);
-            } catch (Exception writingError) {
-                // Secondary failure
-            }
-            throw e;
+            map.put("userName", name);
+            licenseData.add(map);
         }
+
+        model.addAttribute("licenses", licenseData);
+        return "licenses";
     }
 }

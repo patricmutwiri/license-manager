@@ -38,7 +38,7 @@
 
                 <div class="license-key-wrapper" style="margin-bottom: 1.5rem;">
                     <code th:id="'key-' + ${license.id}" th:text="${license.key}">XXXX-XXXX-XXXX-XXXX</code>
-                    <button th:onclick="'copyKey(\'' + ${license.key} + '\')'"
+                    <button th:data-key="${license.key}" onclick="copyKey(this.getAttribute('data-key'))"
                         style="position: absolute; top: 0.5rem; right: 0.5rem; background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">

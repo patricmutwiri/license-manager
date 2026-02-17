@@ -8,6 +8,9 @@ import com.mutwiri.licensemanager.entities.License;
 public interface LicenseService {
     License generateLicense(Long userId, Long organizationId);
 
+    License generateLicense(Long userId, Long organizationId, String hostname, String applicationName, String email,
+            java.time.LocalDateTime expiryDate, java.util.Map<String, String> customFields);
+
     boolean validateLicense(String key);
 
     List<License> getLicensesByUser(Long userId);
