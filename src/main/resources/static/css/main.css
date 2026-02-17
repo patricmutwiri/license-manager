@@ -362,6 +362,19 @@ input:focus {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
+.btn-social .social-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-social .social-icon img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+
 .btn-github-theme {
     background: #171717;
     color: #fff;
