@@ -39,17 +39,15 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-EXPOSE 10000
-
 # Render uses PORT env variable
-ENV PORT=10000
+ENV PORT=8080
 
 # Optimized for 512MB container
 ENV JAVA_OPTS="-XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=60.0 \
     -XX:InitialRAMPercentage=50.0 \
     -XX:+ExitOnOutOfMemoryError \
-    -Dserver.port=$PORT \
+    -Dserver.port=${PORT} \
     -Djava.security.egd=file:/dev/./urandom"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar license-manager.jar"]
