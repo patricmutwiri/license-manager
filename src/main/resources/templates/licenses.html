@@ -25,7 +25,9 @@
     <main class="container">
         <header class="page-header">
             <h1>Infrastructure Registry</h1>
-            <p>Active licenses and provisioning history for your organization.</p>
+            <p th:if="${organization == null}">Active licenses and provisioning history for your organization.</p>
+            <p th:if="${organization != null}">Active licenses for <span th:text="${organization.name}"
+                    style="color: var(--primary); font-weight: 600;">Organization</span>.</p>
         </header>
 
         <div class="grid">

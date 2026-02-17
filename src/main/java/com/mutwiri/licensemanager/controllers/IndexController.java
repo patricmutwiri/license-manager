@@ -23,10 +23,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.mutwiri.licensemanager.entities.License;
+import com.mutwiri.licensemanager.entities.Organization;
 import com.mutwiri.licensemanager.entities.User;
 import com.mutwiri.licensemanager.repository.UserRepository;
 import com.mutwiri.licensemanager.services.LicenseService;
 import com.mutwiri.licensemanager.services.OrganizationService;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @Controller
 public class IndexController {
@@ -45,8 +48,18 @@ public class IndexController {
     }
 
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(Model model, @AuthenticationPrincipal OAuth2User principal) {
         model.addAttribute("organizations", organizationService.getAllOrganizations());
+        if (principal != null) {
+            String name = principal.getAttribute("name");
+            if (name == null) {
+                name = principal.getAttribute("login"); // GitHub fallback
+            }
+            if (name == null) {
+                name = "User"; // Generic fallback
+            }
+            model.addAttribute("userName", name);
+        }
         return "index";
     }
 
@@ -146,6 +159,12 @@ public class IndexController {
 
     @GetMapping("/licenses")
     public String licenses(@RequestParam(required = false) Long orgId, Model model) {
+        if (orgId != null) {
+            Organization organization = organizationService.getOrganizationById(orgId)
+                    .orElseThrow(() -> new EntityNotFoundException("Organization not found with id: " + orgId));
+            model.addAttribute("organization", organization);
+        }
+
         List<License> licenses = orgId != null
                 ? licenseService.getLicensesByOrganization(orgId)
                 : List.of();
@@ -153,12 +172,18 @@ public class IndexController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDateTime now = LocalDateTime.now();
 
-        List<Map<String, Object>> licenseData = licenses.stream()
-                .map(l -> transformToLicenseData(l, formatter, now))
-                .toList();
+        try {
+            List<Map<String, Object>> licenseData = licenses.stream()
+                    .map(l -> transformToLicenseData(l, formatter, now))
+                    .toList();
 
-        model.addAttribute("licenses", licenseData);
-        return "licenses";
+            model.addAttribute("licenses", licenseData);
+            model.addAttribute("orgId", orgId); // Ensure orgId is available for links
+            return "licenses";
+        } catch (Exception e) {
+            e.printStackTrace(); // FORCE PRINT TO CONSOLE
+            throw e;
+        }
     }
 
     private Map<String, Object> transformToLicenseData(License l, DateTimeFormatter formatter, LocalDateTime now) {

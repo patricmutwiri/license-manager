@@ -27,7 +27,11 @@
     <main class="container">
         <header class="page-header">
             <h1>Command Center</h1>
-            <p>Scale your software distribution and manage licensing infrastructure with precision.</p>
+            <p th:if="${userName == null}">Scale your software distribution and manage licensing infrastructure with
+                precision.</p>
+            <p th:if="${userName != null}">Welcome back, <span th:text="${userName}"
+                    style="color: var(--primary); font-weight: 600;">User</span>. Ready to manage your infrastructure?
+            </p>
         </header>
 
         <section class="grid" style="margin-bottom: 3rem;">
