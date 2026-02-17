@@ -8,7 +8,6 @@ package com.mutwiri.licensemanager.controllers;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,47 +77,66 @@ public class IndexController {
             return "redirect:/login";
         }
 
-        Object subObj = principal.getAttribute("sub");
-        Object idObj = principal.getAttribute("id");
-        String sub = subObj != null ? subObj.toString() : null;
-        String idAttribute = idObj != null ? idObj.toString() : null;
-        String providerId = sub != null ? sub : idAttribute;
+        User user = resolveUser(principal);
 
-        if (providerId == null) {
-            throw new IllegalArgumentException("Could not identify user from OAuth2 provider attributes");
-        }
+        logger.info("Generating advanced license for orgId: {} by user: {} for app: {}",
+                orgId, user.getEmail(), applicationName);
 
-        User user = userRepository.findByProviderId(providerId)
+        LocalDateTime expiry = parseExpiryDate(expiryDate);
+        Map<String, String> customFields = parseCustomFields(customKeys, customValues);
+
+        licenseService.generateLicense(user.getId(), orgId, hostname, applicationName, email, expiry, customFields);
+        return "redirect:/licenses?orgId=" + orgId;
+    }
+
+    private User resolveUser(OAuth2User principal) {
+        String providerId = extractProviderId(principal);
+        return userRepository.findByProviderId(providerId)
                 .orElseGet(() -> {
                     String userEmail = principal.getAttribute("email");
                     if (userEmail != null) {
                         return userRepository.findByEmail(userEmail)
-                                .orElseThrow(() -> new IllegalStateException(
-                                        "User not found by email or providerId in database"));
+                                .orElseThrow(() -> new IllegalStateException("User not found by email or providerId"));
                     }
-                    throw new IllegalStateException("User not found in database for providerId: " + providerId);
+                    throw new IllegalStateException("User not found for providerId: " + providerId);
                 });
+    }
 
-        logger.info("Generating advanced license for orgId: {} by user: {} for app: {}", orgId, providerId,
-                applicationName);
+    private String extractProviderId(OAuth2User principal) {
+        Object sub = principal.getAttribute("sub");
+        Object id = principal.getAttribute("id");
 
-        LocalDateTime expiry = (expiryDate != null && !expiryDate.isEmpty())
+        String providerId = null;
+        if (sub != null) {
+            providerId = sub.toString();
+        } else if (id != null) {
+            providerId = id.toString();
+        }
+
+        if (providerId == null) {
+            throw new IllegalArgumentException("Could not identify user from OAuth2 provider attributes");
+        }
+        return providerId;
+    }
+
+    private LocalDateTime parseExpiryDate(String expiryDate) {
+        return (expiryDate != null && !expiryDate.isEmpty())
                 ? LocalDateTime.parse(expiryDate + "T00:00:00")
                 : LocalDateTime.now().plusYears(1);
+    }
 
+    private Map<String, String> parseCustomFields(List<String> keys, List<String> values) {
         Map<String, String> customFields = new HashMap<>();
-        if (customKeys != null && customValues != null) {
-            for (int i = 0; i < customKeys.size(); i++) {
-                String key = customKeys.get(i);
-                String value = i < customValues.size() ? customValues.get(i) : "";
+        if (keys != null && values != null) {
+            for (int i = 0; i < keys.size(); i++) {
+                String key = keys.get(i);
+                String value = i < values.size() ? values.get(i) : "";
                 if (key != null && !key.trim().isEmpty()) {
                     customFields.put(key, value);
                 }
             }
         }
-
-        licenseService.generateLicense(user.getId(), orgId, hostname, applicationName, email, expiry, customFields);
-        return "redirect:/licenses?orgId=" + orgId;
+        return customFields;
     }
 
     @GetMapping("/login")
@@ -132,28 +150,33 @@ public class IndexController {
                 ? licenseService.getLicensesByOrganization(orgId)
                 : List.of();
 
-        List<Map<String, Object>> licenseData = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDateTime now = LocalDateTime.now();
 
-        for (License l : licenses) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", l.getId());
-            map.put("key", l.getKey());
-            map.put("expiryFormatted", l.getExpiry() != null ? l.getExpiry().format(formatter) : "No Expiry");
-            map.put("active", l.getExpiry() != null && l.getExpiry().isAfter(now));
-
-            String name = "System User";
-            if (l.getUser() != null) {
-                name = l.getUser().getName() != null && !l.getUser().getName().trim().isEmpty()
-                        ? l.getUser().getName()
-                        : l.getUser().getEmail();
-            }
-            map.put("userName", name);
-            licenseData.add(map);
-        }
+        List<Map<String, Object>> licenseData = licenses.stream()
+                .map(l -> transformToLicenseData(l, formatter, now))
+                .toList();
 
         model.addAttribute("licenses", licenseData);
         return "licenses";
+    }
+
+    private Map<String, Object> transformToLicenseData(License l, DateTimeFormatter formatter, LocalDateTime now) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", l.getId());
+        map.put("key", l.getKey());
+        map.put("expiryFormatted", l.getExpiry() != null ? l.getExpiry().format(formatter) : "No Expiry");
+        map.put("active", l.getExpiry() != null && l.getExpiry().isAfter(now));
+        map.put("userName", resolveLicenseUserName(l));
+        return map;
+    }
+
+    private String resolveLicenseUserName(License l) {
+        if (l.getUser() == null) {
+            return "System User";
+        }
+        return (l.getUser().getName() != null && !l.getUser().getName().trim().isEmpty())
+                ? l.getUser().getName()
+                : l.getUser().getEmail();
     }
 }
