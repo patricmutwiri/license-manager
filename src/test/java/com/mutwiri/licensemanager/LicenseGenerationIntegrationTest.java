@@ -1,19 +1,10 @@
+/*
+ * Copyright (c) 2026.
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 1:21 AM
+ *
+ */
+
 package com.mutwiri.licensemanager;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.mutwiri.licensemanager.entities.License;
 import com.mutwiri.licensemanager.entities.Organization;
@@ -23,6 +14,20 @@ import com.mutwiri.licensemanager.repository.OrganizationRepository;
 import com.mutwiri.licensemanager.repository.UserRepository;
 import com.mutwiri.licensemanager.services.EmailService;
 import com.mutwiri.licensemanager.services.LicenseService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @Transactional
@@ -58,6 +63,7 @@ public class LicenseGenerationIntegrationTest {
         testOrg = new Organization();
         testOrg.setName("Test Org");
         testOrg.setDomain("test.com");
+        testOrg.setEmail("test@test.com");
         testOrg = organizationRepository.save(testOrg);
     }
 
