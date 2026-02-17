@@ -1,26 +1,17 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:36 AM
  *
  */
 
 package com.mutwiri.licensemanager.entities;
 
+import jakarta.persistence.*;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapKeyColumn;
-import lombok.Data;
 
 @Entity
 @Data
@@ -30,8 +21,13 @@ public class License {
     private Long id;
     private String key;
 
+    @Column(unique = true, nullable = false)
     private String hostname;
+
+    @Column(unique = true, nullable = false)
     private String applicationName;
+
+    @Column(unique = true, nullable = false)
     private String email;
 
     @ElementCollection

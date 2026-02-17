@@ -1,29 +1,25 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:36 AM
  *
  */
 
 package com.mutwiri.licensemanager.entities;
 
-import java.util.List;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import lombok.Data;
+import jakarta.persistence.*;
 
 @Entity
-@Data
 public class Organization {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String name;
-    private String domain;
 
-    @OneToMany(mappedBy = "organization")
-    private List<License> licenses;
+    @Column(unique = true, nullable = false)
+    private String name;
+
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    @Column(unique = true, nullable = false)
+    private String domain;
 }

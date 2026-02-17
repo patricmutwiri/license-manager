@@ -1,21 +1,21 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:36 AM
  *
  */
 
 package com.mutwiri.licensemanager.repository;
 
-import java.util.Optional;
-
+import com.mutwiri.licensemanager.entities.Organization;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.mutwiri.licensemanager.entities.Organization;
+import java.util.Optional;
 
 @Repository
 public interface OrganizationRepository extends JpaRepository<Organization, Long> {
-    Optional<Organization> findByName(String name);
-
     Optional<Organization> findByDomain(String domain);
+    Organization findByName(String name);
+    Organization findByEmail(String email);
+    Optional<Organization> findById(Long id);
 }

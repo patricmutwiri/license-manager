@@ -1,16 +1,20 @@
-package com.mutwiri.licensemanager.services.impl;
+/*
+ * Copyright (c) 2026.
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:36 AM
+ *
+ */
 
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
+package com.mutwiri.licensemanager.services.impl;
 
 import com.mutwiri.licensemanager.entities.License;
 import com.mutwiri.licensemanager.services.EmailService;
-
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +31,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             helper.setFrom("api@patric.xyz");
-            helper.setTo(license.getEmail() != null ? license.getEmail() : "dev@patric.xyz");
+            helper.setTo(license.getEmail() != null ? license.getEmail() : "");
             helper.setSubject("License Backup: " + license.getApplicationName());
 
             StringBuilder body = new StringBuilder();

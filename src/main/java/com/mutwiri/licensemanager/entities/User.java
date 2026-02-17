@@ -1,16 +1,12 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:36 AM
  *
  */
 
 package com.mutwiri.licensemanager.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
@@ -20,8 +16,13 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(unique = true, nullable = false)
     private String name;
+
+    @Column(unique = true, nullable = false)
     private String email;
-    private String provider; // "google" or "github"
+
+    private String provider; // "google" or "GitHub"
     private String providerId; // Unique ID from provider
 }
