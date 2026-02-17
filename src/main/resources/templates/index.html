@@ -3,8 +3,8 @@
 
 <head>
     <title>License Manager - Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" th:href="@{/css/main.css}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -16,96 +16,78 @@
             </a>
             <div class="nav-links">
                 <a href="/">Dashboard</a>
-                <a th:if="${#authentication.name != 'anonymousUser'}" href="/logout">Logout</a>
-                <a th:if="${#authentication.name == 'anonymousUser'}" href="/login">Login</a>
+                <a th:if="${#authentication.name != 'anonymousUser'}" href="/logout" class="btn btn-secondary"
+                    style="padding: 0.5rem 1rem; font-size: 0.8rem;">Logout</a>
+                <a th:if="${#authentication.name == 'anonymousUser'}" href="/login" class="btn btn-primary"
+                    style="padding: 0.5rem 1rem; font-size: 0.8rem;">Login</a>
             </div>
         </div>
     </nav>
 
     <main class="container">
-        <header style="margin-bottom: 3rem;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                <div>
-                    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; letter-spacing: -0.03em;">License
-                        Infrastructure</h1>
-                    <p style="color: var(--text-secondary); font-size: 1.125rem;">Scale your software distribution with
-                        precision.</p>
-                </div>
-                <div class="badge"
-                    style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.5rem 1rem;">
-                    <span
-                        style="display: inline-block; width: 6px; height: 6px; background: #10b981; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px #10b981;"></span>
-                    System Online
-                </div>
-            </div>
+        <header class="page-header">
+            <h1>Command Center</h1>
+            <p>Scale your software distribution and manage licensing infrastructure with precision.</p>
         </header>
 
-        <section class="stats-grid"
-            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem;">
+        <section class="grid" style="margin-bottom: 3rem;">
             <div class="stats-card glass-card">
-                <span
-                    style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Organizations</span>
-                <div style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;" th:text="${organizations.size()}">0
+                <label>Organizations</label>
+                <div style="font-size: 2.5rem; font-weight: 700; margin-top: 0.5rem;" th:text="${organizations.size()}">
+                    0</div>
+            </div>
+            <div class="stats-card glass-card">
+                <label>Active Licenses</label>
+                <div style="font-size: 2.5rem; font-weight: 700; margin-top: 0.5rem;">∞</div>
+            </div>
+            <div class="stats-card glass-card">
+                <label>API Status</label>
+                <div
+                    style="font-size: 2.5rem; font-weight: 700; margin-top: 0.5rem; color: var(--success); display: flex; align-items: center; gap: 0.75rem;">
+                    Healthy
+                    <span
+                        style="display: inline-block; width: 10px; height: 10px; background: var(--success); border-radius: 50%; box-shadow: 0 0 12px var(--success);"></span>
                 </div>
-            </div>
-            <div class="stats-card glass-card">
-                <span
-                    style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Active
-                    Licenses</span>
-                <div style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">∞</div>
-            </div>
-            <div class="stats-card glass-card">
-                <span
-                    style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">API
-                    Status</span>
-                <div style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem; color: #10b981;">Healthy</div>
             </div>
         </section>
 
-        <section class="glass-card" style="margin-bottom: 4rem; padding: 2.5rem;">
-            <div style="margin-bottom: 2rem;">
-                <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Provision Organization</h2>
-                <p style="color: var(--text-secondary); font-size: 0.875rem;">Create a new entity to manage software
+        <section class="glass-card" style="margin-bottom: 4rem; padding: 3rem;">
+            <div style="margin-bottom: 2.5rem;">
+                <h2>Provision Organization</h2>
+                <p style="color: var(--text-secondary); font-size: 0.95rem;">Create a new entity to manage software
                     distributions.</p>
             </div>
-            <form th:action="@{/organizations}" method="post"
-                style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1.5rem; align-items: end;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="orgName"
-                        style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem;">Organization
-                        Name</label>
-                    <input type="text" id="orgName" name="name" placeholder="Acme Corp" required
-                        style="width: 100%; padding: 0.875rem 1rem;">
+            <form th:action="@{/organizations}" method="post" class="form-grid" style="align-items: end;">
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label for="orgName">Organization Name</label>
+                    <input type="text" id="orgName" name="name" placeholder="Acme Corp" required>
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="orgDomain"
-                        style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem;">Primary
-                        Domain</label>
-                    <input type="text" id="orgDomain" name="domain" placeholder="acme.com" required
-                        style="width: 100%; padding: 0.875rem 1rem;">
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label for="orgDomain">Primary Domain</label>
+                    <input type="text" id="orgDomain" name="domain" placeholder="acme.com" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="padding: 0.875rem 2rem;">Initialize</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Initialize</button>
             </form>
         </section>
 
         <div class="grid">
             <div th:each="org : ${organizations}" class="glass-card">
-                <h3 th:text="${org.name}" style="margin-bottom: 0.5rem; font-size: 1.25rem;">Org Name</h3>
+                <h3 th:text="${org.name}" style="margin-bottom: 0.5rem; font-size: 1.4rem;">Org Name</h3>
                 <p th:text="${org.domain}"
-                    style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1.5rem;">domain.com</p>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 2rem;">domain.com</p>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
                     <a th:href="@{'/licenses?orgId=' + ${org.id}}" class="btn btn-secondary">
                         View Licenses
                     </a>
-                    <a th:href="@{'/licenses/generate?orgId=' + ${org.id}}" class="btn btn-primary"
-                        style="width: 100%;">
+                    <a th:href="@{'/licenses/generate?orgId=' + ${org.id}}" class="btn btn-primary">
                         Generate License
                     </a>
                 </div>
             </div>
         </div>
-        <footer style="margin-top: 5rem; border-top: 1px solid var(--border-dim); padding: 2rem 0; text-align: center;">
-            <p style="color: var(--text-muted); font-size: 0.875rem;">
+
+        <footer>
+            <p>
                 Works by <a href="https://github.com/patricmutwiri" target="_blank"
                     style="color: var(--primary); text-decoration: none; font-weight: 600;">Patrick Mutwiri</a>
             </p>

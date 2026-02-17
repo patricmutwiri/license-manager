@@ -2,9 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 
 <head>
-    <title>License Manager - My Licenses</title>
+    <title>Licenses - License Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" th:href="@{/css/main.css}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -16,31 +16,33 @@
             </a>
             <div class="nav-links">
                 <a href="/">Dashboard</a>
-                <a href="/logout">Logout</a>
+                <a th:if="${#authentication.name != 'anonymousUser'}" href="/logout" class="btn btn-secondary"
+                    style="padding: 0.5rem 1rem; font-size: 0.8rem;">Logout</a>
             </div>
         </div>
     </nav>
 
     <main class="container">
-        <header>
-            <h1>Organization Licenses</h1>
-            <p>View and manage active software licenses for this organization.</p>
+        <header class="page-header">
+            <h1>Infrastructure Registry</h1>
+            <p>Active licenses and provisioning history for your organization.</p>
         </header>
 
         <div class="grid">
             <div th:each="license : ${licenses}" class="glass-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
-                    <span th:class="'status-badge ' + (${license.active} ? 'status-active' : 'status-expired')"
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem;">
+                    <span th:class="'badge ' + (${license.active} ? 'badge-success' : 'badge-danger')"
                         th:text="${license.active ? 'Active' : 'Expired'}">Active</span>
-                    <span style="font-size: 0.75rem; color: var(--text-secondary);" th:text="'# ' + ${license.id}">#
-                        1</span>
                 </div>
 
-                <div class="license-key-wrapper" style="margin-bottom: 1.5rem;">
-                    <code th:id="'key-' + ${license.id}" th:text="${license.key}">XXXX-XXXX-XXXX-XXXX</code>
+                <div
+                    style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); padding: 1.25rem; border-radius: 8px; position: relative; margin-bottom: 2rem;">
+                    <code class="license-key" th:text="${license.key}"
+                        style="border: none; background: transparent; padding: 0; font-size: 0.9rem;">XXXX-XXXX</code>
                     <button th:data-key="${license.key}" onclick="copyKey(this.getAttribute('data-key'))"
-                        style="position: absolute; top: 0.5rem; right: 0.5rem; background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        style="position: absolute; top: 50%; right: 1rem; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; transition: var(--transition);"
+                        onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-muted)'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -48,39 +50,55 @@
                     </button>
                 </div>
 
-                <div
-                    style="display: flex; flex-direction: column; gap: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span th:text="${license.userName}">User Name</span>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="margin-bottom: 0;">Application</label>
+                        <div style="font-weight: 600; font-size: 1.1rem;" th:text="${license.applicationName}">App Name
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span th:text="${license.expiryFormatted}">2026-01-01</span>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <label style="margin-bottom: 0;">Issued To</label>
+                        <div
+                            style="color: var(--text-secondary); font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span th:text="${license.userName}">User</span>
+                            <span style="color: var(--text-muted);">&bull;</span>
+                            <span th:text="${license.email}">email@acme.com</span>
+                        </div>
+                    </div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-dim);">
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <label style="margin-bottom: 0;">Expires</label>
+                            <div th:text="${license.expiryFormatted}"
+                                style="font-size: 0.9rem; color: var(--text-secondary);">2026-01-01</div>
+                        </div>
+                        <div th:if="${not #maps.isEmpty(license.customFields)}">
+                            <label style="margin-bottom: 0; text-align: right;">Meta</label>
+                            <div style="font-size: 0.9rem; color: var(--secondary); text-align: right;"
+                                th:text="${license.customFields.size()} + ' fields'">3 fields</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div th:if="${#lists.isEmpty(licenses)}" class="glass-card"
-                style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
-                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">No licenses found for this organization.
-                </p>
-                <a href="/" class="btn btn-primary">Back to Dashboard</a>
+                style="grid-column: 1 / -1; text-align: center; padding: 6rem 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">&empty;</div>
+                <h3 style="margin-bottom: 0.5rem;">No active infrastructure</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 2.5rem;">Initialize your first license to begin
+                    scaling your distribution.</p>
+                <a th:href="@{'/licenses/generate?orgId=' + ${orgId}}" class="btn btn-primary">Initialize License</a>
             </div>
         </div>
 
-        <div style="margin-top: 3rem; text-align: center;">
-            <a href="/" class="btn btn-secondary">Dashboard</a>
+        <div style="margin-top: 4rem; text-align: center;">
+            <a href="/" class="btn btn-secondary">&larr; Back to Command Center</a>
         </div>
 
-        <footer style="margin-top: 5rem; border-top: 1px solid var(--border-dim); padding: 2rem 0; text-align: center;">
-            <p style="color: var(--text-muted); font-size: 0.875rem;">
+        <footer>
+            <p>
                 Works by <a href="https://github.com/patricmutwiri" target="_blank"
                     style="color: var(--primary); text-decoration: none; font-weight: 600;">Patrick Mutwiri</a>
             </p>
@@ -91,21 +109,38 @@
         function copyKey(text) {
             navigator.clipboard.writeText(text).then(() => {
                 const toast = document.createElement('div');
-                toast.innerText = 'Key copied to clipboard';
+                toast.innerText = 'License key copied';
                 toast.style.position = 'fixed';
                 toast.style.bottom = '2rem';
-                toast.style.right = '2rem';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%)';
                 toast.style.background = 'var(--primary)';
                 toast.style.color = 'white';
-                toast.style.padding = '0.75rem 1.5rem';
-                toast.style.borderRadius = '8px';
-                toast.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.4)';
+                toast.style.padding = '0.8rem 2rem';
+                toast.style.borderRadius = '100px';
+                toast.style.boxShadow = '0 20px 40px rgba(0,0,0,0.5)';
                 toast.style.zIndex = '1000';
+                toast.style.fontSize = '0.9rem';
+                toast.style.fontWeight = '600';
+                toast.style.animation = 'fadeInUp 0.3s ease-out';
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 2000);
             });
         }
     </script>
+    <style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+    </style>
 </body>
 
 </html>
