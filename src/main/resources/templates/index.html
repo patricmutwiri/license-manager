@@ -16,7 +16,8 @@
             </a>
             <div class="nav-links">
                 <a href="/">Dashboard</a>
-                <a href="/logout">Logout</a>
+                <a th:if="${#authentication.name != 'anonymousUser'}" href="/logout">Logout</a>
+                <a th:if="${#authentication.name == 'anonymousUser'}" href="/login">Login</a>
             </div>
         </div>
     </nav>
@@ -96,12 +97,10 @@
                     <a th:href="@{'/licenses?orgId=' + ${org.id}}" class="btn btn-secondary">
                         View Licenses
                     </a>
-                    <form th:action="@{/licenses/generate}" method="post">
-                        <input type="hidden" name="orgId" th:value="${org.id}">
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">
-                            Generate License
-                        </button>
-                    </form>
+                    <a th:href="@{'/licenses/generate?orgId=' + ${org.id}}" class="btn btn-primary"
+                        style="width: 100%;">
+                        Generate License
+                    </a>
                 </div>
             </div>
         </div>

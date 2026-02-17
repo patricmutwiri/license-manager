@@ -19,14 +19,15 @@
                 management.</p>
         </div>
 
-        <div class="social-btns">
-            <a th:href="@{/oauth2/authorization/google}" class="btn btn-social" style="text-decoration: none;">
+        <div class="social-btns" style="display: flex; flex-direction: column; gap: 1rem;">
+            <a th:href="@{/oauth2/authorization/google}" class="btn btn-social"
+                style="text-decoration: none; display: flex; align-items: center; justify-content: center; width: 100%; padding: 0.75rem;">
                 <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
                     style="width: 18px; margin-right: 12px;" alt="">
                 Continue with Google
             </a>
             <a th:href="@{/oauth2/authorization/github}" class="btn btn-social btn-github-theme"
-                style="text-decoration: none;">
+                style="text-decoration: none; display: flex; align-items: center; justify-content: center; width: 100%; padding: 0.75rem;">
                 <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
                     style="filter: invert(1); width: 18px; margin-right: 12px;" alt="">
                 Continue with GitHub

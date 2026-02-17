@@ -90,9 +90,9 @@ public class IndexController {
 
         User user = userRepository.findByProviderId(providerId)
                 .orElseGet(() -> {
-                    String email = principal.getAttribute("email");
-                    if (email != null) {
-                        return userRepository.findByEmail(email)
+                    String userEmail = principal.getAttribute("email");
+                    if (userEmail != null) {
+                        return userRepository.findByEmail(userEmail)
                                 .orElseThrow(() -> new IllegalStateException(
                                         "User not found by email or providerId in database"));
                     }
