@@ -6,6 +6,7 @@
 
 package com.mutwiri.licensemanager.controllers;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -55,11 +56,12 @@ public class IndexController {
             return "redirect:/login";
         }
 
-        String providerId = principal.getAttribute("sub") != null ? principal.getAttribute("sub").toString()
-                : (principal.getAttribute("id") != null ? principal.getAttribute("id").toString() : null);
+        String sub = principal.getAttribute("sub") != null ? principal.getAttribute("sub").toString() : null;
+        String idAttribute = principal.getAttribute("id") != null ? principal.getAttribute("id").toString() : null;
+        String providerId = sub != null ? sub : idAttribute;
 
         if (providerId == null) {
-            throw new RuntimeException("Could not identify user from OAuth2 provider");
+            throw new IllegalArgumentException("Could not identify user from OAuth2 provider attributes");
         }
 
         User user = userRepository.findByProviderId(providerId)
@@ -67,9 +69,10 @@ public class IndexController {
                     String email = principal.getAttribute("email");
                     if (email != null) {
                         return userRepository.findByEmail(email)
-                                .orElseThrow(() -> new RuntimeException("User not found by email or providerId"));
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "User not found by email or providerId in database"));
                     }
-                    throw new RuntimeException("User not found in database for providerId: " + providerId);
+                    throw new IllegalStateException("User not found in database for providerId: " + providerId);
                 });
 
         licenseService.generateLicense(user.getId(), orgId);
@@ -83,15 +86,12 @@ public class IndexController {
 
     @GetMapping("/licenses")
     public String licenses(@RequestParam(required = false) Long orgId, Model model) {
-        List<License> licenses;
-        if (orgId != null) {
-            licenses = licenseService.getLicensesByOrganization(orgId);
-        } else {
-            // In a real app, this would be filtered by current user
-            // For now, let's just show an empty list or some demo data
-            licenses = List.of();
-        }
+        List<License> licenses = orgId != null
+                ? licenseService.getLicensesByOrganization(orgId)
+                : List.of();
+
         model.addAttribute("licenses", licenses);
+        model.addAttribute("now", LocalDateTime.now());
         return "licenses";
     }
 }
