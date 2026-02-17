@@ -7,7 +7,9 @@
 package com.mutwiri.licensemanager.services.impl;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,6 +21,7 @@ import com.mutwiri.licensemanager.entities.User;
 import com.mutwiri.licensemanager.repository.LicenseRepository;
 import com.mutwiri.licensemanager.repository.OrganizationRepository;
 import com.mutwiri.licensemanager.repository.UserRepository;
+import com.mutwiri.licensemanager.services.EmailService;
 import com.mutwiri.licensemanager.services.LicenseService;
 
 @Service
@@ -27,17 +30,27 @@ public class LicenseServiceImpl implements LicenseService {
     private final LicenseRepository licenseRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final EmailService emailService;
 
     public LicenseServiceImpl(LicenseRepository licenseRepository,
             UserRepository userRepository,
-            OrganizationRepository organizationRepository) {
+            OrganizationRepository organizationRepository,
+            EmailService emailService) {
         this.licenseRepository = licenseRepository;
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
+        this.emailService = emailService;
     }
 
     @Override
     public License generateLicense(Long userId, Long organizationId) {
+        return generateLicense(userId, organizationId, null, "Default App", null, LocalDateTime.now().plusYears(1),
+                new HashMap<>());
+    }
+
+    @Override
+    public License generateLicense(Long userId, Long organizationId, String hostname, String applicationName,
+            String email, LocalDateTime expiryDate, Map<String, String> customFields) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         Organization org = organizationRepository.findById(organizationId)
@@ -45,11 +58,20 @@ public class LicenseServiceImpl implements LicenseService {
 
         License license = new License();
         license.setKey(UUID.randomUUID().toString());
-        license.setExpiry(LocalDateTime.now().plusYears(1)); // Default 1 year
+        license.setExpiry(expiryDate != null ? expiryDate : LocalDateTime.now().plusYears(1));
+        license.setHostname(hostname);
+        license.setApplicationName(applicationName);
+        license.setEmail(email);
+        license.setCustomFields(customFields);
         license.setUser(user);
         license.setOrganization(org);
 
-        return licenseRepository.save(license);
+        License saved = licenseRepository.save(license);
+
+        // Trigger backup email
+        emailService.sendLicenseBackup(saved);
+
+        return saved;
     }
 
     @Override

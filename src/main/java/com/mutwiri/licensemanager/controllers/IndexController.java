@@ -57,8 +57,23 @@ public class IndexController {
         return "redirect:/";
     }
 
+    @GetMapping("/licenses/generate")
+    public String showGenerateForm(@RequestParam Long orgId, Model model) {
+        model.addAttribute("orgId", orgId);
+        model.addAttribute("defaultExpiry", LocalDateTime.now().plusYears(1).format(DateTimeFormatter.ISO_LOCAL_DATE));
+        return "generate";
+    }
+
     @PostMapping("/licenses/generate")
-    public String generateLicense(@RequestParam Long orgId, @AuthenticationPrincipal OAuth2User principal) {
+    public String generateLicense(
+            @RequestParam Long orgId,
+            @RequestParam String applicationName,
+            @RequestParam(required = false) String hostname,
+            @RequestParam String email,
+            @RequestParam(required = false) String expiryDate,
+            @RequestParam(required = false) List<String> customKeys,
+            @RequestParam(required = false) List<String> customValues,
+            @AuthenticationPrincipal OAuth2User principal) {
         if (principal == null) {
             return "redirect:/login";
         }
@@ -84,8 +99,25 @@ public class IndexController {
                     throw new IllegalStateException("User not found in database for providerId: " + providerId);
                 });
 
-        logger.info("Generating license for orgId: {} by user: {}", orgId, providerId);
-        licenseService.generateLicense(user.getId(), orgId);
+        logger.info("Generating advanced license for orgId: {} by user: {} for app: {}", orgId, providerId,
+                applicationName);
+
+        LocalDateTime expiry = (expiryDate != null && !expiryDate.isEmpty())
+                ? LocalDateTime.parse(expiryDate + "T00:00:00")
+                : LocalDateTime.now().plusYears(1);
+
+        Map<String, String> customFields = new HashMap<>();
+        if (customKeys != null && customValues != null) {
+            for (int i = 0; i < customKeys.size(); i++) {
+                String key = customKeys.get(i);
+                String value = i < customValues.size() ? customValues.get(i) : "";
+                if (key != null && !key.trim().isEmpty()) {
+                    customFields.put(key, value);
+                }
+            }
+        }
+
+        licenseService.generateLicense(user.getId(), orgId, hostname, applicationName, email, expiry, customFields);
         return "redirect:/licenses?orgId=" + orgId;
     }
 
