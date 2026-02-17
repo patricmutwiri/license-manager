@@ -1,0 +1,16 @@
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/LicenseManagerApplication.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/configs/SecurityConfig.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/controllers/IndexController.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/controllers/LicenseController.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/controllers/OrganizationController.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/entities/License.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/entities/Organization.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/entities/User.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/repository/LicenseRepository.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/repository/OrganizationRepository.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/repository/UserRepository.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/services/LicenseService.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/services/OrganizationService.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/services/UserService.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/services/impl/LicenseServiceImpl.java
+/Users/mutwiri/Projects/java/license-manager/src/main/java/com/mutwiri/licensemanager/services/impl/OrganizationServiceImpl.java

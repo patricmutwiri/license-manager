@@ -102,6 +102,9 @@
 	</dependencies>
 
 	<build>
+		<directory>/tmp/license_manager_build</directory>
+		<outputDirectory>/tmp/license_manager_build/classes</outputDirectory>
+		<testOutputDirectory>/tmp/license_manager_build/test-classes</testOutputDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -120,6 +123,8 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<jvmArguments> -Djava.io.tmpdir=/tmp/license_manager_tmp -Dserver.tomcat.basedir=/tmp/license_manager_tomcat
+					</jvmArguments>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
