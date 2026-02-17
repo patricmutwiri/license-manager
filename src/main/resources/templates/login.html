@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <title>License Manager - Login</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="login-page">
+    <div class="login-container">
+        <h1>License Manager</h1>
+        <p>Manage your software licenses with ease.</p>
+        <div class="login-options">
+            <a th:href="@{/oauth2/authorization/google}" class="btn btn-google">
+                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+                Login with Google
+            </a>
+            <a th:href="@{/oauth2/authorization/github}" class="btn btn-github">
+                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">
+                Login with GitHub
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2026.
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
+ *
+ */
+
+package com.mutwiri.licensemanager.services.impl;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+import com.mutwiri.licensemanager.entities.License;
+import com.mutwiri.licensemanager.entities.Organization;
+import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.repository.LicenseRepository;
+import com.mutwiri.licensemanager.repository.OrganizationRepository;
+import com.mutwiri.licensemanager.repository.UserRepository;
+import com.mutwiri.licensemanager.services.LicenseService;
+
+@Service
+public class LicenseServiceImpl implements LicenseService {
+
+    private final LicenseRepository licenseRepository;
+    private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
+
+    public LicenseServiceImpl(LicenseRepository licenseRepository,
+            UserRepository userRepository,
+            OrganizationRepository organizationRepository) {
+        this.licenseRepository = licenseRepository;
+        this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
+    }
+
+    @Override
+    public License generateLicense(Long userId, Long organizationId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Organization org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization not found"));
+
+        License license = new License();
+        license.setKey(UUID.randomUUID().toString());
+        license.setExpiry(LocalDateTime.now().plusYears(1)); // Default 1 year
+        license.setUser(user);
+        license.setOrganization(org);
+
+        return licenseRepository.save(license);
+    }
+
+    @Override
+    public boolean validateLicense(String key) {
+        return licenseRepository.findByKey(key)
+                .map(license -> license.getExpiry().isAfter(LocalDateTime.now()))
+                .orElse(false);
+    }
+
+    @Override
+    public List<License> getLicensesByUser(Long userId) {
+        return licenseRepository.findByUserId(userId);
+    }
+
+    @Override
+    public List<License> getLicensesByOrganization(Long organizationId) {
+        return licenseRepository.findByOrganizationId(organizationId);
+    }
+
+    @Override
+    public Optional<License> getLicenseByKey(String key) {
+        return licenseRepository.findByKey(key);
+    }
+}

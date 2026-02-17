@@ -6,14 +6,19 @@
 
 package com.mutwiri.licensemanager.repository;
 
-import com.mutwiri.licensemanager.entities.License;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.mutwiri.licensemanager.entities.License;
 
 @Repository
 public interface LicenseRepository extends JpaRepository<License, Long> {
-        License findByKey(String key);
+        Optional<License> findByKey(String key);
+
         List<License> findByUserId(Long userId);
+
+        List<License> findByOrganizationId(Long organizationId);
 }

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <title>License Manager - Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">License Manager</a>
+            <div class="nav-links">
+                <a href="/licenses">My Licenses</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header>
+            <h1>Organizations</h1>
+            <p>Select an organization to manage its licenses.</p>
+        </header>
+
+        <section class="grid">
+            <div th:each="org : ${organizations}" class="card">
+                <h3 th:text="${org.name}">Org Name</h3>
+                <p th:text="${org.domain}">domain.com</p>
+                <a th:href="@{'/licenses?orgId=' + ${org.id}}" class="btn btn-primary">View Licenses</a>
+            </div>
+            <div class="card add-org">
+                <h3>Add New Organization</h3>
+                <form action="/api/organizations" method="post">
+                    <input type="text" name="name" placeholder="Name" required>
+                    <input type="text" name="domain" placeholder="Domain" required>
+                    <button type="submit" class="btn btn-secondary">Create</button>
+                </form>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

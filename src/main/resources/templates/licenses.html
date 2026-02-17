@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <title>License Manager - My Licenses</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">License Manager</a>
+            <div class="nav-links">
+                <a href="/licenses">My Licenses</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header>
+            <h1>My Licenses</h1>
+            <p>View and manage your active software licenses.</p>
+        </header>
+
+        <section class="licenses-list">
+            <div class="card" th:if="${#lists.isEmpty(licenses)}">
+                <p>No licenses found. Contact your organization administrator.</p>
+            </div>
+            <div th:each="license : ${licenses}" class="card license-card">
+                <div class="license-info">
+                    <h3 th:text="${license.organization.name}">Org Name</h3>
+                    <code class="license-key" th:text="${license.key}">XXXX-XXXX-XXXX-XXXX</code>
+                    <p class="expiry">Expires on: <span
+                            th:text="${#temporals.format(license.expiry, 'yyyy-MM-dd')}">2026-01-01</span></p>
+                </div>
+                <div class="license-status success" th:if="${license.expiry.isAfter(T(java.time.LocalDateTime).now())}">
+                    Active</div>
+                <div class="license-status danger"
+                    th:unless="${license.expiry.isAfter(T(java.time.LocalDateTime).now())}">Expired</div>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

@@ -6,27 +6,24 @@
 
 package com.mutwiri.licensemanager.entities;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.Data;
 
 @Entity
 @Data
-public class License {
+public class Organization {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String key;
-    private LocalDateTime expiry;
+    private String name;
+    private String domain;
 
-    @ManyToOne
-    private User user;
-
-    @ManyToOne
-    private Organization organization;
+    @OneToMany(mappedBy = "organization")
+    private List<License> licenses;
 }

@@ -1,13 +1,18 @@
-/*
- * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/9/26, 10:23 PM
- *
- */
-
 package com.mutwiri.licensemanager.services;
 
-import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.Optional;
 
-@Service
-public class LicenseService {
+import com.mutwiri.licensemanager.entities.License;
+
+public interface LicenseService {
+    License generateLicense(Long userId, Long organizationId);
+
+    boolean validateLicense(String key);
+
+    List<License> getLicensesByUser(Long userId);
+
+    List<License> getLicensesByOrganization(Long organizationId);
+
+    Optional<License> getLicenseByKey(String key);
 }
