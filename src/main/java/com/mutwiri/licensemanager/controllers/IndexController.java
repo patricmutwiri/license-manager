@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 1:18 AM
  *
  */
 
@@ -13,8 +13,6 @@ import com.mutwiri.licensemanager.repository.UserRepository;
 import com.mutwiri.licensemanager.services.LicenseService;
 import com.mutwiri.licensemanager.services.OrganizationService;
 import jakarta.persistence.EntityNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
@@ -31,8 +29,6 @@ import java.util.Map;
 
 @Controller
 public class IndexController {
-
-    private static final Logger logger = LoggerFactory.getLogger(IndexController.class);
     private final LicenseService licenseService;
     private final OrganizationService organizationService;
     private final UserRepository userRepository;
@@ -89,10 +85,6 @@ public class IndexController {
         }
 
         User user = resolveUser(principal);
-
-        logger.info("Generating advanced license for orgId: {} by user: {} for app: {}",
-                orgId, user.getEmail(), applicationName);
-
         LocalDateTime expiry = parseExpiryDate(expiryDate);
         Map<String, String> customFields = parseCustomFields(customKeys, customValues);
 
