@@ -1,12 +1,13 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 1:29 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 1:35 AM
  *
  */
 
 package com.mutwiri.licensemanager.configs;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.mail.autoconfigure.MailProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import java.nio.charset.StandardCharsets;
 
 @Configuration
+@EnableConfigurationProperties(MailProperties.class)
 public class MailConfig {
 
     @Bean
