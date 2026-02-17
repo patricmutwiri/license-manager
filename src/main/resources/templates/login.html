@@ -7,19 +7,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
-<body class="login-page">
-    <div class="login-container">
-        <h1>License Manager</h1>
-        <p>Manage your software licenses with ease.</p>
-        <div class="login-options">
-            <a th:href="@{/oauth2/authorization/google}" class="btn btn-google">
-                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
-                Login with Google
+<body class="login-wrap">
+    <div class="card login-card">
+        <div style="margin-bottom: 2rem;">
+            <a href="/" class="logo" style="justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
+                <span class="logo-icon">LM</span>
+                License Manager
             </a>
-            <a th:href="@{/oauth2/authorization/github}" class="btn btn-github">
-                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">
-                Login with GitHub
+            <h2 style="font-size: 1.25rem;">Scale your software distribution</h2>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem;">The engine for modern license
+                management.</p>
+        </div>
+
+        <div class="social-btns">
+            <a th:href="@{/oauth2/authorization/google}" class="btn btn-social" style="text-decoration: none;">
+                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
+                    style="width: 18px; margin-right: 12px;" alt="">
+                Continue with Google
             </a>
+            <a th:href="@{/oauth2/authorization/github}" class="btn btn-social btn-github-theme"
+                style="text-decoration: none;">
+                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                    style="filter: invert(1); width: 18px; margin-right: 12px;" alt="">
+                Continue with GitHub
+            </a>
+        </div>
+
+        <div
+            style="margin-top: 2.5rem; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-dim); padding-top: 1.5rem;">
+            Works by <a href="https://github.com/patricmutwiri" target="_blank"
+                style="color: var(--primary); text-decoration: none; font-weight: 600;">Patrick Mutwiri</a>
         </div>
     </div>
 </body>

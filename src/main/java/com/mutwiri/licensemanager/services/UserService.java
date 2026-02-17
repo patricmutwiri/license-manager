@@ -34,14 +34,22 @@ public class UserService extends DefaultOAuth2UserService {
         Map<String, Object> attributes = oauth2User.getAttributes();
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
-        String providerId = attributes.get("sub") != null ? attributes.get("sub").toString()
-                : attributes.get("id").toString(); // Google: sub, GitHub: id
-        String email = attributes.get("email").toString();
+        Object providerIdObj = attributes.get("sub") != null ? attributes.get("sub") : attributes.get("id");
+        if (providerIdObj == null) {
+            throw new RuntimeException("Provider ID not found in OAuth2 attributes");
+        }
+        String providerId = providerIdObj.toString();
+
+        Object emailObj = attributes.get("email");
+        String email = (emailObj != null) ? emailObj.toString() : providerId + "@" + registrationId + ".local";
 
         User user = userRepository.findByProviderAndProviderId(registrationId, providerId)
                 .orElseGet(() -> {
                     User newUser = new User();
                     newUser.setEmail(email);
+                    Object nameObj = attributes.get("name");
+                    newUser.setName(nameObj != null ? nameObj.toString()
+                            : (attributes.get("login") != null ? attributes.get("login").toString() : email));
                     newUser.setProvider(registrationId);
                     newUser.setProviderId(providerId);
                     return userRepository.save(newUser);

@@ -195,3 +195,7 @@ README.html
 *.iml
 .idea
 .exercism
+application.properties
+application-test.properties
+application-dev.properties
+application-prod.properties
