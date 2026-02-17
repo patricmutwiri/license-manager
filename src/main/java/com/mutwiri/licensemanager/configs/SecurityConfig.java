@@ -36,6 +36,8 @@ public class SecurityConfig {
                                                 .userInfoEndpoint(userInfo -> userInfo
                                                                 .userService(userService)))
                                 .logout(logout -> logout
+                                                .logoutRequestMatcher(
+                                                                request -> request.getRequestURI().equals("/logout"))
                                                 .logoutSuccessUrl("/") // Redirect here after logout
                                 );
                 return http.build();
