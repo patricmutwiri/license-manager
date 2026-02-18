@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 11:08 PM
  *
  */
 
@@ -31,7 +31,7 @@ public class UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest userRequest) {
         OAuth2User oauth2User = super.loadUser(userRequest);
         Map<String, Object> attributes = oauth2User.getAttributes();
-
+        logger.debug("OAuth2 attributes: {}", attributes);
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Object providerIdObj = attributes.get("sub") != null ? attributes.get("sub") : attributes.get("id");
         if (providerIdObj == null) {
@@ -46,9 +46,8 @@ public class UserService extends DefaultOAuth2UserService {
                 .orElseGet(() -> {
                     User newUser = new User();
                     newUser.setEmail(email);
-                    Object nameObj = attributes.get("name");
-                    newUser.setName(nameObj != null ? nameObj.toString()
-                            : (attributes.get("login") != null ? attributes.get("login").toString() : email));
+                    Object nameObj = attributes.get("login") != null ? attributes.get("login") : attributes.get("name");
+                    newUser.setName(nameObj.toString());
                     newUser.setProvider(registrationId);
                     newUser.setProviderId(providerId);
                     return userRepository.save(newUser);
