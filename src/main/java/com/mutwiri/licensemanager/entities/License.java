@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:34 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 11:13 PM
  *
  */
 
@@ -22,10 +22,10 @@ public class License {
     private Long id;
     private String key;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String hostname;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String applicationName;
 
     @Column(unique = true, nullable = false)
