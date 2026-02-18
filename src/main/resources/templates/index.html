@@ -1,3 +1,9 @@
+<!--
+  ~ Copyright (c) 2026.
+  ~ @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:55 PM
+  ~
+  -->
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 
@@ -64,13 +70,17 @@
             <form th:action="@{/organizations}" method="post" class="form-grid" style="align-items: end;">
                 <div class="input-group" style="margin-bottom: 0;">
                     <label for="orgName">Organization Name</label>
-                    <input type="text" id="orgName" name="name" placeholder="Acme Corp" required>
+                    <input type="text" id="orgName" name="name" placeholder="Horizon Inc" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label for="orgEmail">Organization Email</label>
+                    <input type="text" id="orgEmail" name="email" placeholder="info@horizon.com" required>
                 </div>
                 <div class="input-group" style="margin-bottom: 0;">
                     <label for="orgDomain">Primary Domain</label>
-                    <input type="text" id="orgDomain" name="domain" placeholder="acme.com" required>
+                    <input type="text" id="orgDomain" name="domain" placeholder="horizon.com" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Initialize</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Provision</button>
             </form>
         </section>
 

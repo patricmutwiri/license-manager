@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:55 PM
  *
  */
 
@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class LicenseServiceImpl implements LicenseService {
@@ -63,9 +64,8 @@ public class LicenseServiceImpl implements LicenseService {
 
         License saved = licenseRepository.save(license);
 
-        // Trigger backup email
-        emailService.sendLicenseBackup(saved);
-
+        // Trigger backup email asynchronously
+        CompletableFuture.runAsync(() -> emailService.sendLicenseBackup(saved));
         return saved;
     }
 
