@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 11:32 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 11:50 PM
  *
  */
 
@@ -26,9 +26,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 @Controller
 public class IndexController {
@@ -90,9 +87,7 @@ public class IndexController {
         User user = resolveUser(principal);
         LocalDateTime expiry = parseExpiryDate(expiryDate);
         Map<String, String> customFields = parseCustomFields(customKeys, customValues);
-
-        Executor vThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
-        CompletableFuture.runAsync(() -> licenseService.generateLicense(user.getId(), orgId, hostname, applicationName, email, expiry, customFields), vThreadExecutor);
+        licenseService.generateLicense(user.getId(), orgId, hostname, applicationName, email, expiry, customFields);
         return "redirect:/licenses?orgId=" + orgId;
     }
 
@@ -187,6 +182,13 @@ public class IndexController {
         map.put("expiryFormatted", l.getExpiry() != null ? l.getExpiry().format(formatter) : "No Expiry");
         map.put("active", l.getExpiry() != null && l.getExpiry().isAfter(now));
         map.put("userName", resolveLicenseUserName(l));
+        map.put("applicationName", l.getApplicationName());
+        map.put("email", l.getEmail());
+        map.put("hostname", l.getHostname());
+        map.put("customFields", l.getCustomFields());
+        map.put("daysUntilExpiry", l.getExpiry() != null ? java.time.Duration.between(now, l.getExpiry()).toDays() : null);
+        map.put("isExpiringSoon", l.getExpiry() != null && java.time.Duration.between(now, l.getExpiry()).toDays() <= 30);
+
         return map;
     }
 
