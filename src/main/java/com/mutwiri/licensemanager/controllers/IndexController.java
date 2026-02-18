@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:34 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 11:32 PM
  *
  */
 
@@ -26,6 +26,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 @Controller
 public class IndexController {
@@ -88,7 +91,8 @@ public class IndexController {
         LocalDateTime expiry = parseExpiryDate(expiryDate);
         Map<String, String> customFields = parseCustomFields(customKeys, customValues);
 
-        licenseService.generateLicense(user.getId(), orgId, hostname, applicationName, email, expiry, customFields);
+        Executor vThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        CompletableFuture.runAsync(() -> licenseService.generateLicense(user.getId(), orgId, hostname, applicationName, email, expiry, customFields), vThreadExecutor);
         return "redirect:/licenses?orgId=" + orgId;
     }
 
