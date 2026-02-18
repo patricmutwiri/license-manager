@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:34 PM
  *
  */
 
@@ -24,9 +24,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public Organization createOrganization(String name, String domain) {
+    public Organization createOrganization(String name, String email, String domain) {
         Organization org = new Organization();
         org.setName(name);
+        org.setEmail(email);
         org.setDomain(domain);
         return organizationRepository.save(org);
     }

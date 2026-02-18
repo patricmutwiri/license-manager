@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:00 PM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:34 PM
  *
  */
 
@@ -38,6 +38,8 @@ public class License {
     private Map<String, String> customFields = new HashMap<>();
 
     private LocalDateTime expiry;
+
+    private boolean active = true;
 
     @ManyToOne
     private User user;

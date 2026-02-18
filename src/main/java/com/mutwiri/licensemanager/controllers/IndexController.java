@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 1:18 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:34 PM
  *
  */
 
@@ -58,8 +58,8 @@ public class IndexController {
     }
 
     @PostMapping("/organizations")
-    public String createOrganization(@RequestParam String name, @RequestParam String domain) {
-        organizationService.createOrganization(name, domain);
+    public String createOrganization(@RequestParam String name, @RequestParam String email, @RequestParam String domain) {
+        organizationService.createOrganization(name, email, domain);
         return "redirect:/";
     }
 

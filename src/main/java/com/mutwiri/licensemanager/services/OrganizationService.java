@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:34 PM
  *
  */
 
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrganizationService {
-    Organization createOrganization(String name, String domain);
+    Organization createOrganization(String name, String email, String domain);
 
     List<Organization> getAllOrganizations();
 

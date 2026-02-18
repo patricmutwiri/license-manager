@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 10:34 PM
  *
  */
 
@@ -23,8 +23,8 @@ public class OrganizationController {
     }
 
     @PostMapping
-    public Organization createOrganization(@RequestParam String name, @RequestParam String domain) {
-        return organizationService.createOrganization(name, domain);
+    public Organization createOrganization(@RequestParam String name, @RequestParam String email, @RequestParam String domain) {
+        return organizationService.createOrganization(name, email, domain);
     }
 
     @GetMapping
