@@ -6,13 +6,12 @@
 
 package com.mutwiri.licensemanager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.List;
-
+import com.mutwiri.licensemanager.entities.License;
+import com.mutwiri.licensemanager.entities.Organization;
+import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.repository.OrganizationRepository;
+import com.mutwiri.licensemanager.repository.UserRepository;
+import com.mutwiri.licensemanager.services.LicenseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,12 +19,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.mutwiri.licensemanager.entities.License;
-import com.mutwiri.licensemanager.entities.Organization;
-import com.mutwiri.licensemanager.entities.User;
-import com.mutwiri.licensemanager.repository.OrganizationRepository;
-import com.mutwiri.licensemanager.repository.UserRepository;
-import com.mutwiri.licensemanager.services.LicenseService;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
@@ -55,28 +51,33 @@ class LicenseServiceTests {
 
         testOrg = new Organization();
         testOrg.setName("Test Org");
+        testOrg.setEmail("org@example.com");
         testOrg.setDomain("example.com");
         testOrg = organizationRepository.save(testOrg);
     }
 
     @Test
     void testGenerateAndValidateLicense() {
-        License license = licenseService.generateLicense(testUser.getId(), testOrg.getId());
+        License license = licenseService.generateLicense(testUser.getId(), testOrg.getId(),
+                "test-host.local", "Test App", "user@test.com", null, null);
 
         assertNotNull(license);
         assertNotNull(license.getKey());
+        assertNotNull(license.getExpiry());
         assertEquals(testUser.getId(), license.getUser().getId());
         assertEquals(testOrg.getId(), license.getOrganization().getId());
 
+        // License should be valid (expires in future, which is 1 year by default)
         boolean isValid = licenseService.validateLicense(license.getKey());
-        assertTrue(isValid);
+        assertTrue(isValid, "License should be valid as it expires in the future");
 
         assertFalse(licenseService.validateLicense("non-existent-key"));
     }
 
     @Test
     void testGetLicensesByOrg() {
-        licenseService.generateLicense(testUser.getId(), testOrg.getId());
+        licenseService.generateLicense(testUser.getId(), testOrg.getId(),
+                "test-host.local", "Test App 2", "user2@test.com", null, null);
 
         List<License> licenses = licenseService.getLicensesByOrganization(testOrg.getId());
         assertEquals(1, licenses.size());

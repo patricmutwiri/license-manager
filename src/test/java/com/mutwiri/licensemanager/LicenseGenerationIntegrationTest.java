@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @Transactional
+@org.springframework.test.context.ActiveProfiles("test")
 public class LicenseGenerationIntegrationTest {
 
     @Autowired
@@ -91,8 +92,8 @@ public class LicenseGenerationIntegrationTest {
         assertThat(license.getEmail()).isEqualTo("admin@test.com");
         assertThat(license.getCustomFields()).containsAllEntriesOf(customFields);
 
-        // Verify email service was called
-        verify(emailService).sendLicenseBackup(any(License.class));
+        // Verify async email service was called (sendLicenseBackupAsync is now used)
+        verify(emailService).sendLicenseBackupAsync(any(License.class));
 
         // Final verification from DB
         License saved = licenseRepository.findById(license.getId()).orElseThrow();

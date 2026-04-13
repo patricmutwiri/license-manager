@@ -8,6 +8,8 @@ package com.mutwiri.licensemanager.entities;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -18,7 +20,7 @@ import java.util.Map;
 @Table(name = "licenses")
 public class License {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String key;
 
@@ -40,6 +42,14 @@ public class License {
     private LocalDateTime expiry;
 
     private boolean active = true;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
     @ManyToOne
     private User user;

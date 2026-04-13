@@ -1,51 +1,98 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
  *
  */
 
 package com.mutwiri.licensemanager.controllers;
 
+import com.mutwiri.licensemanager.exceptions.ErrorResponse;
+import com.mutwiri.licensemanager.exceptions.LicenseGenerationException;
+import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.ui.Model;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.nio.file.AccessDeniedException;
 
+/**
+ * Global exception handler for consistent error responses across the application.
+ */
 @ControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    /**
+     * Handle custom ResourceNotFoundException.
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+        log.warn("Resource not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("NOT_FOUND", ex.getMessage(), System.currentTimeMillis()));
+    }
 
+    /**
+     * Handle custom LicenseGenerationException.
+     */
+    @ExceptionHandler(LicenseGenerationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<ErrorResponse> handleLicenseGenerationError(LicenseGenerationException ex) {
+        log.error("License generation failed: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("LICENSE_ERROR", ex.getMessage(), System.currentTimeMillis()));
+    }
+
+    /**
+     * Handle JPA EntityNotFoundException.
+     */
     @ExceptionHandler(EntityNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public String handleEntityNotFound(EntityNotFoundException ex, Model model) {
-        logger.error("Entity not found: {}", ex.getMessage());
-        model.addAttribute("errorCode", "404");
-        model.addAttribute("errorMessage", "The requested resource could not be found.");
-        return "error";
+    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
+        log.warn("Entity not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("NOT_FOUND", "The requested resource could not be found.", System.currentTimeMillis()));
     }
 
+    /**
+     * Handle validation errors from @Valid.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ErrorResponse> handleValidationError(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldError() != null
+                ? ex.getBindingResult().getFieldError().getDefaultMessage()
+                : "Validation failed";
+        log.warn("Validation error: {}", message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("VALIDATION_ERROR", message, System.currentTimeMillis()));
+    }
+
+    /**
+     * Handle access denied errors.
+     */
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public String handleAccessDenied(AccessDeniedException ex, Model model) {
-        logger.error("Access denied: {}", ex.getMessage());
-        model.addAttribute("errorCode", "403");
-        model.addAttribute("errorMessage", "You do not have permission to access this resource.");
-        return "error";
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("FORBIDDEN", "You do not have permission to access this resource.", System.currentTimeMillis()));
     }
 
+    /**
+     * Handle all other exceptions.
+     */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public String handleGeneralException(Exception ex, Model model) {
-        logger.error("Unexpected error: {}", ex.getMessage(), ex);
-        model.addAttribute("errorCode", "500");
-        model.addAttribute("errorMessage", "An unexpected error occurred. Please try again later.");
-        return "error";
+    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        log.error("Unexpected error occurred", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred. Please try again later.", System.currentTimeMillis()));
     }
 }

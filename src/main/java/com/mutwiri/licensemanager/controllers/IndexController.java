@@ -13,6 +13,7 @@ import com.mutwiri.licensemanager.repository.UserRepository;
 import com.mutwiri.licensemanager.services.LicenseService;
 import com.mutwiri.licensemanager.services.OrganizationService;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
+@Slf4j
 public class IndexController {
     private final LicenseService licenseService;
     private final OrganizationService organizationService;
@@ -167,10 +169,10 @@ public class IndexController {
                     .toList();
 
             model.addAttribute("licenses", licenseData);
-            model.addAttribute("orgId", orgId); // Ensure orgId is available for links
+            model.addAttribute("orgId", orgId);
             return "licenses";
         } catch (Exception e) {
-            e.printStackTrace(); // FORCE PRINT TO CONSOLE
+            log.error("Error retrieving licenses for organization: {}", orgId, e);
             throw e;
         }
     }

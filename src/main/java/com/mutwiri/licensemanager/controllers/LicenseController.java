@@ -1,44 +1,82 @@
 /*
  * Copyright (c) 2026.
- * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
+ * @author Patrick Mutwiri <dev@patric.xyz> on 2/18/26, 12:40 AM
  *
  */
 
 package com.mutwiri.licensemanager.controllers;
 
-import com.mutwiri.licensemanager.entities.License;
+import com.mutwiri.licensemanager.models.dto.DtoMapper;
+import com.mutwiri.licensemanager.models.dto.LicenseResponse;
 import com.mutwiri.licensemanager.services.LicenseService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
+/**
+ * REST API endpoints for license operations.
+ */
 @RestController
-@RequestMapping("/api/licenses")
+@RequestMapping("/api/v1/licenses")
+@Slf4j
 public class LicenseController {
 
     private final LicenseService licenseService;
+    private final DtoMapper dtoMapper;
 
-    public LicenseController(LicenseService licenseService) {
+    public LicenseController(LicenseService licenseService, DtoMapper dtoMapper) {
         this.licenseService = licenseService;
+        this.dtoMapper = dtoMapper;
     }
 
-    @PostMapping("/generate")
-    public License generateLicense(@RequestParam Long userId, @RequestParam Long organizationId) {
-        return licenseService.generateLicense(userId, organizationId);
+    /**
+     * Generate a new license.
+     */
+    @PostMapping
+    public ResponseEntity<LicenseResponse> generateLicense(
+            @RequestParam Long userId,
+            @RequestParam Long organizationId) {
+        log.info("Generating license for userId: {}, orgId: {}", userId, organizationId);
+        var license = licenseService.generateLicense(userId, organizationId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(dtoMapper.toLicenseResponse(license));
     }
 
+    /**
+     * Validate a license key.
+     */
     @GetMapping("/validate")
-    public boolean validateLicense(@RequestParam String key) {
-        return licenseService.validateLicense(key);
+    public ResponseEntity<Map<String, Object>> validateLicense(@RequestParam String key) {
+        log.debug("Validating license key: {}", key);
+        boolean isValid = licenseService.validateLicense(key);
+        return ResponseEntity.ok(Map.of("key", key, "valid", isValid));
     }
 
+    /**
+     * Get all licenses for a user.
+     */
     @GetMapping("/user/{userId}")
-    public List<License> getLicensesByUser(@PathVariable Long userId) {
-        return licenseService.getLicensesByUser(userId);
+    public ResponseEntity<List<LicenseResponse>> getLicensesByUser(@PathVariable Long userId) {
+        log.info("Fetching licenses for userId: {}", userId);
+        var licenses = licenseService.getLicensesByUser(userId);
+        return ResponseEntity.ok(licenses.stream()
+                .map(dtoMapper::toLicenseResponse)
+                .toList());
     }
 
+    /**
+     * Get all licenses for an organization.
+     */
     @GetMapping("/org/{orgId}")
-    public List<License> getLicensesByOrg(@PathVariable Long orgId) {
-        return licenseService.getLicensesByOrganization(orgId);
+    public ResponseEntity<List<LicenseResponse>> getLicensesByOrg(@PathVariable Long orgId) {
+        log.info("Fetching licenses for orgId: {}", orgId);
+        var licenses = licenseService.getLicensesByOrganization(orgId);
+        return ResponseEntity.ok(licenses.stream()
+                .map(dtoMapper::toLicenseResponse)
+                .toList());
     }
 }
