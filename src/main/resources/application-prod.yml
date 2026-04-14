@@ -19,19 +19,19 @@ spring:
     open-in-view: false
     show-sql: false
   mail:
-    host: ${SMTP_HOST}
-    port: ${SMTP_PORT:465}
-    username: ${SMTP_USER}
-    password: ${SMTP_PASS}
-    from: ${SMTP_MAIL_FROM:${SMTP_USER}}
+    host: ${SMTP_MAIL_HOST}
+    port: ${SMTP_MAIL_PORT:465}
+    username: ${SMTP_MAIL_USERNAME}
+    password: ${SMTP_MAIL_PASSWORD}
+    from: ${SMTP_MAIL_FROM:${SMTP_MAIL_USERNAME}}
     properties:
       mail:
         smtp:
-          auth: ${SMTP_AUTH:true}
+          auth: ${SMTP_MAIL_AUTH:true}
           ssl:
-            enable: ${SMTP_TLS:true}
+            enable: ${SMTP_MAIL_TLS:true}
           starttls:
-            enable: ${SMTP_STARTTLS:false}
+            enable: ${SMTP_MAIL_TLS:false}
   security:
     oauth2:
       client:
