@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Table(name = "offline_license_artifacts")
 public class OfflineLicenseArtifact {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = false)

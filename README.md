@@ -11,11 +11,12 @@ The platform now supports Keygen-like concepts: products, policies, licenses, ma
 - Node-locked and floating/seat-based activation models.
 - Fingerprint-scoped machine activation, deactivation, and validation.
 - Heartbeat/check-in tracking with missed-heartbeat seat reclamation.
-- HMAC-SHA256 signed offline license artifacts with TTL and local verification.
+- Ed25519 signed offline license artifacts with TTL and local public-key verification.
 - Feature entitlement attachment at policy level.
 - Audit trail for products, policies, licenses, machines, heartbeat misses, and offline checkouts.
-- OAuth2-backed Thymeleaf dashboard retained for existing organization/license workflows.
+- OAuth2-backed Thymeleaf dashboard plus an admin console for platform inventory.
 - API-first admin/runtime flows with JSON responses.
+- Flyway-managed schema, runtime client API tokens, rate limiting, and service coverage enforcement.
 
 ## Requirements
 
@@ -33,7 +34,8 @@ Set these for local or production runtime. Do not commit real values.
 export SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/license_manager'
 export SPRING_DATASOURCE_USERNAME='postgres'
 export SPRING_DATASOURCE_PASSWORD='change-me'
-export SPRING_JPA_HIBERNATE_DDL_AUTO='update'
+export SPRING_JPA_HIBERNATE_DDL_AUTO='validate'
+export SPRING_FLYWAY_ENABLED='true'
 
 export SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID='...'
 export SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET='...'
@@ -49,13 +51,17 @@ export SMTP_TLS='true'
 export SMTP_MAIL_FROM='noreply@example.com'
 
 export LICENSE_ADMIN_API_KEY='replace-with-long-random-secret'
-export LICENSE_SIGNING_SECRET='replace-with-at-least-24-random-characters'
+export LICENSE_OFFLINE_PRIVATE_KEY_BASE64='<pkcs8-ed25519-private-key>'
+export LICENSE_OFFLINE_PUBLIC_KEY_BASE64='<x509-ed25519-public-key>'
 export LICENSE_SEED_ENABLED='true'
 export LICENSE_EMAIL_ENABLED='true'
+export LICENSE_RATE_LIMIT_RUNTIME_PER_MINUTE='120'
 export PORT='8080'
 ```
 
 The app also accepts the older `SMTP_MAIL_HOST`, `SMTP_MAIL_PORT`, `SMTP_MAIL_USERNAME`, `SMTP_MAIL_PASSWORD`, `SMTP_MAIL_AUTH`, and `SMTP_MAIL_TLS` names.
+
+If offline key env vars are omitted in local development, the app generates an ephemeral Ed25519 key pair at startup. Production should use stable keys so issued artifacts remain verifiable across restarts.
 
 ## Run Locally
 
@@ -69,6 +75,8 @@ Open the dashboard at `http://localhost:8080`.
 
 Seed data is created when `LICENSE_SEED_ENABLED=true`: a demo user, organization, product, entitlements, floating policy, and license.
 
+The platform inventory console is available at `http://localhost:8080/admin` for authenticated users whose stored role is `ADMIN`.
+
 ## Admin API
 
 All admin endpoints require:
@@ -77,9 +85,19 @@ All admin endpoints require:
 X-Admin-Api-Key: <LICENSE_ADMIN_API_KEY>
 ```
 
-Create a product:
+Create a customer, organization, and product:
 
 ```bash
+curl -X POST http://localhost:8080/api/v1/admin/users \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
+  -d '{"name":"Acme Admin","email":"admin@acme.test","role":"CUSTOMER"}'
+
+curl -X POST http://localhost:8080/api/v1/admin/organizations \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
+  -d '{"name":"Acme Inc","email":"billing@acme.test","domain":"acme.test"}'
+
 curl -X POST http://localhost:8080/api/v1/admin/products \
   -H "Content-Type: application/json" \
   -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
@@ -145,19 +163,37 @@ curl -X PATCH http://localhost:8080/api/v1/admin/licenses/1/status \
 
 Useful reads:
 
+- `GET /api/v1/admin/users`
+- `GET /api/v1/admin/organizations`
 - `GET /api/v1/admin/products`
 - `GET /api/v1/admin/policies`
 - `GET /api/v1/admin/licenses`
 - `GET /api/v1/admin/licenses/{licenseId}/machines`
 - `GET /api/v1/admin/audit-events`
 
+Create a runtime client token:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/client-tokens \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
+  -d '{"name":"desktop-runtime","productId":1}'
+```
+
 ## Runtime API
+
+All runtime endpoints require:
+
+```http
+X-License-Client-Key: <client token returned once by /api/v1/admin/client-tokens>
+```
 
 Validate a license:
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/runtime/licenses/validate \
   -H "Content-Type: application/json" \
+  -H "X-License-Client-Key: $LICENSE_CLIENT_KEY" \
   -d '{
     "key": "lic_xxx",
     "productCode": "desktop-app",
@@ -172,6 +208,7 @@ Activate a machine:
 ```bash
 curl -X POST http://localhost:8080/api/v1/runtime/licenses/lic_xxx/machines \
   -H "Content-Type: application/json" \
+  -H "X-License-Client-Key: $LICENSE_CLIENT_KEY" \
   -d '{"fingerprint":"host:serial:disk","name":"Build Agent 1","platform":"linux","version":"1.2.0"}'
 ```
 
@@ -180,6 +217,7 @@ Heartbeat/check-in:
 ```bash
 curl -X POST http://localhost:8080/api/v1/runtime/licenses/lic_xxx/machines/heartbeat \
   -H "Content-Type: application/json" \
+  -H "X-License-Client-Key: $LICENSE_CLIENT_KEY" \
   -d '{"fingerprint":"host:serial:disk","version":"1.2.1"}'
 ```
 
@@ -188,6 +226,7 @@ Deactivate:
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/runtime/licenses/lic_xxx/machines \
   -H "Content-Type: application/json" \
+  -H "X-License-Client-Key: $LICENSE_CLIENT_KEY" \
   -d '{"fingerprint":"host:serial:disk"}'
 ```
 
@@ -196,6 +235,7 @@ Checkout an offline artifact:
 ```bash
 curl -X POST http://localhost:8080/api/v1/runtime/offline/checkouts \
   -H "Content-Type: application/json" \
+  -H "X-License-Client-Key: $LICENSE_CLIENT_KEY" \
   -d '{"key":"lic_xxx","fingerprint":"host:serial:disk","ttlDays":3}'
 ```
 
@@ -204,16 +244,24 @@ Verify an offline artifact:
 ```bash
 curl -X POST http://localhost:8080/api/v1/runtime/offline/verify \
   -H "Content-Type: application/json" \
+  -H "X-License-Client-Key: $LICENSE_CLIENT_KEY" \
   -d '{"artifact":"<payload.signature>"}'
+```
+
+Fetch the public verification key:
+
+```bash
+curl -X GET http://localhost:8080/api/v1/runtime/offline/public-key \
+  -H "X-License-Client-Key: $LICENSE_CLIENT_KEY"
 ```
 
 ## Architecture
 
-- Controllers: browser dashboard, admin API, runtime API.
-- Services: license generation compatibility service, platform licensing service, audit service, crypto service, admin auth service, email service.
-- Data: JPA entities for users, organizations, products, policies, entitlements, licenses, machines, offline artifacts, and audit events.
+- Controllers: browser dashboard, admin console, admin API, runtime API.
+- Services: license generation compatibility service, platform licensing service, audit service, crypto service, admin auth service, client token service, rate-limit service, email service.
+- Data: Flyway migrations plus JPA entities for users, organizations, products, policies, entitlements, licenses, machines, offline artifacts, client API tokens, and audit events.
 - Validation flow: request -> license lookup -> status/expiry/product/policy/version checks -> optional fingerprint machine check -> entitlement and heartbeat response.
-- Offline flow: active license plus active machine -> signed HMAC artifact -> local verification by signature and TTL.
+- Offline flow: active license plus active machine -> Ed25519 signed artifact -> local verification with public key, signature, and TTL.
 
 ## Tests
 
@@ -221,11 +269,10 @@ curl -X POST http://localhost:8080/api/v1/runtime/offline/verify \
 mvn clean test
 ```
 
-Current tests cover legacy license generation, platform issuance/validation, activation/deactivation behavior, floating seat enforcement, heartbeat reclamation, offline artifact verification, version policy bounds, and admin API key checks.
+Current tests cover legacy license generation, platform issuance/validation, activation/deactivation behavior, floating seat enforcement, heartbeat reclamation, offline artifact verification, version policy bounds, admin API key checks, Flyway schema migration, Ed25519 signing, and runtime rate limiting. JaCoCo enforces service package coverage during `mvn clean test`.
 
 ## Trade-offs
 
-- Schema management uses Hibernate `ddl-auto` because no migration tool exists in this repository yet.
-- Admin API authorization uses an API key header. OAuth2 login remains for the dashboard, but role-based admin accounts are not modeled yet.
-- Offline artifacts use HMAC signatures, so server and verifier share the signing secret. Public-key signatures would be stronger for third-party client verification.
-
+- Admin API authorization still supports an API key header for automation. The browser admin console uses OAuth2 login plus the stored `ADMIN` user role.
+- Runtime client tokens are stored hashed and returned only once. Rotate them if the raw token is lost.
+- In-process rate limiting is suitable for a single app instance. Use a shared limiter such as Redis for horizontally scaled production deployments.

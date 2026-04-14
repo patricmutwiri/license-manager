@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @Table(name = "entitlements", uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "code"}))
 public class Entitlement {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = false)

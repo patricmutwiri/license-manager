@@ -28,7 +28,7 @@ import java.time.LocalDateTime;
 @Table(name = "machines", uniqueConstraints = @UniqueConstraint(columnNames = {"license_id", "fingerprint_hash"}))
 public class Machine {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = false)

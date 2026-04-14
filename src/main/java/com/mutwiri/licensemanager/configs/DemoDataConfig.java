@@ -10,6 +10,7 @@ package com.mutwiri.licensemanager.configs;
 import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.Organization;
 import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.entities.UserRole;
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
 import com.mutwiri.licensemanager.repository.OrganizationRepository;
 import com.mutwiri.licensemanager.repository.ProductRepository;
@@ -38,6 +39,7 @@ public class DemoDataConfig {
                 demo.setEmail("demo-admin@example.test");
                 demo.setProvider("seed");
                 demo.setProviderId("demo-admin");
+                demo.setRole(UserRole.ADMIN);
                 return userRepository.save(demo);
             });
 
@@ -70,4 +72,3 @@ public class DemoDataConfig {
         };
     }
 }
-

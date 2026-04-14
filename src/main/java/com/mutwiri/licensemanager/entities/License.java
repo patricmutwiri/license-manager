@@ -20,7 +20,7 @@ import java.util.Map;
 @Table(name = "licenses")
 public class License {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "license_key", unique = true, nullable = false)

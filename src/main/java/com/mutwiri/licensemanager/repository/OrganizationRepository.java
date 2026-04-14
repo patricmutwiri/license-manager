@@ -18,4 +18,10 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
     Organization findByName(String name);
     Organization findByEmail(String email);
     Optional<Organization> findById(Long id);
+
+    boolean existsByName(String name);
+
+    boolean existsByEmail(String email);
+
+    boolean existsByDomain(String domain);
 }

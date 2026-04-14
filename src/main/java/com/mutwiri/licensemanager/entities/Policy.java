@@ -32,7 +32,7 @@ import java.util.Set;
 @Table(name = "policies")
 public class Policy {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = false)
@@ -71,7 +71,7 @@ public class Policy {
 
     @ElementCollection
     @CollectionTable(name = "policy_entitlements", joinColumns = @JoinColumn(name = "policy_id"))
-    @Column(name = "entitlement_code")
+    @Column(name = "entitlement_code", nullable = false)
     private Set<String> entitlementCodes = new HashSet<>();
 
     @CreationTimestamp
@@ -82,4 +82,3 @@ public class Policy {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 }
-

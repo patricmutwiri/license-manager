@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <title>Admin Console - License Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">
+                <span class="logo-icon">LM</span>
+                License Manager
+            </a>
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/logout" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="page-header">
+            <h1>Admin Console</h1>
+            <p>Products, policies, licenses, machines, and recent platform events.</p>
+        </header>
+
+        <section class="grid" style="margin-bottom: 2rem;">
+            <div class="stats-card glass-card">
+                <label>Products</label>
+                <div style="font-size: 2rem; font-weight: 700;" th:text="${products.size()}">0</div>
+            </div>
+            <div class="stats-card glass-card">
+                <label>Policies</label>
+                <div style="font-size: 2rem; font-weight: 700;" th:text="${policies.size()}">0</div>
+            </div>
+            <div class="stats-card glass-card">
+                <label>Licenses</label>
+                <div style="font-size: 2rem; font-weight: 700;" th:text="${licenses.size()}">0</div>
+            </div>
+            <div class="stats-card glass-card">
+                <label>Machines</label>
+                <div style="font-size: 2rem; font-weight: 700;" th:text="${machines.size()}">0</div>
+            </div>
+        </section>
+
+        <section class="glass-card" style="margin-bottom: 2rem;">
+            <h2>Products</h2>
+            <div th:each="product : ${products}" class="license-item">
+                <strong th:text="${product.code}">code</strong>
+                <span th:text="${product.name}">Product</span>
+            </div>
+        </section>
+
+        <section class="glass-card" style="margin-bottom: 2rem;">
+            <h2>Policies</h2>
+            <div th:each="policy : ${policies}" class="license-item">
+                <strong th:text="${policy.code}">policy</strong>
+                <span th:text="${policy.licensingModel}">FLOATING</span>
+                <span th:text="'Seats: ' + ${policy.maxSeats}">Seats</span>
+            </div>
+        </section>
+
+        <section class="glass-card" style="margin-bottom: 2rem;">
+            <h2>Licenses</h2>
+            <div th:each="license : ${licenses}" class="license-item">
+                <code class="license-key" th:text="${license.key}">lic</code>
+                <span th:text="${license.status}">ACTIVE</span>
+                <span th:text="${license.customerEmail}">customer</span>
+            </div>
+        </section>
+
+        <section class="glass-card">
+            <h2>Recent Audit Events</h2>
+            <div th:each="event : ${auditEvents}" class="license-item">
+                <strong th:text="${event.eventType}">event</strong>
+                <span th:text="${event.description}">description</span>
+                <span th:text="${event.createdAt}">created</span>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

@@ -19,6 +19,7 @@ import com.mutwiri.licensemanager.entities.Organization;
 import com.mutwiri.licensemanager.entities.Policy;
 import com.mutwiri.licensemanager.entities.Product;
 import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.entities.UserRole;
 import com.mutwiri.licensemanager.exceptions.ConflictException;
 import com.mutwiri.licensemanager.exceptions.InvalidLicenseRequestException;
 import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
@@ -83,6 +84,55 @@ public class LicensePlatformService {
         this.auditService = auditService;
         this.cryptoService = cryptoService;
         this.objectMapper = objectMapper;
+    }
+
+    @Transactional
+    public ApiPayloads.UserResponse createUser(ApiPayloads.CreateUserRequest request) {
+        String email = request.email().trim().toLowerCase();
+        String name = request.name().trim();
+        if (userRepository.existsByEmail(email) || userRepository.existsByName(name)) {
+            throw new ConflictException("User name or email already exists.");
+        }
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setRole(request.role() == null ? UserRole.CUSTOMER : request.role());
+        user.setProvider(blankToNull(request.provider()));
+        user.setProviderId(blankToNull(request.providerId()));
+        User saved = userRepository.save(user);
+        auditService.record("user.created", ADMIN_ACTOR, "user", saved.getId().toString(),
+                "User created", Map.of("email", saved.getEmail(), "role", saved.getRole().name()));
+        return toUserResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.UserResponse> listUsers() {
+        return userRepository.findAll().stream().map(this::toUserResponse).toList();
+    }
+
+    @Transactional
+    public ApiPayloads.OrganizationResponse createOrganization(ApiPayloads.CreateOrganizationRequest request) {
+        String name = request.name().trim();
+        String email = request.email().trim().toLowerCase();
+        String domain = request.domain().trim().toLowerCase();
+        if (organizationRepository.existsByName(name)
+                || organizationRepository.existsByEmail(email)
+                || organizationRepository.existsByDomain(domain)) {
+            throw new ConflictException("Organization name, email, or domain already exists.");
+        }
+        Organization organization = new Organization();
+        organization.setName(name);
+        organization.setEmail(email);
+        organization.setDomain(domain);
+        Organization saved = organizationRepository.save(organization);
+        auditService.record("organization.created", ADMIN_ACTOR, "organization", saved.getId().toString(),
+                "Organization created", Map.of("domain", saved.getDomain()));
+        return toOrganizationResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.OrganizationResponse> listOrganizations() {
+        return organizationRepository.findAll().stream().map(this::toOrganizationResponse).toList();
     }
 
     @Transactional
@@ -540,6 +590,16 @@ public class LicensePlatformService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private ApiPayloads.UserResponse toUserResponse(User user) {
+        return new ApiPayloads.UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(),
+                user.getProvider(), user.getProviderId(), user.getCreatedAt(), user.getUpdatedAt());
+    }
+
+    private ApiPayloads.OrganizationResponse toOrganizationResponse(Organization organization) {
+        return new ApiPayloads.OrganizationResponse(organization.getId(), organization.getName(),
+                organization.getEmail(), organization.getDomain(), organization.getCreatedAt(), organization.getUpdatedAt());
     }
 
     private String firstNonBlank(String... values) {

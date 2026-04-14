@@ -9,6 +9,7 @@ package com.mutwiri.licensemanager.controllers;
 
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
 import com.mutwiri.licensemanager.services.AdminAuthService;
+import com.mutwiri.licensemanager.services.ClientTokenService;
 import com.mutwiri.licensemanager.services.LicensePlatformService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -31,10 +32,44 @@ public class PlatformAdminController {
 
     private final LicensePlatformService platformService;
     private final AdminAuthService adminAuthService;
+    private final ClientTokenService clientTokenService;
 
-    public PlatformAdminController(LicensePlatformService platformService, AdminAuthService adminAuthService) {
+    public PlatformAdminController(LicensePlatformService platformService,
+            AdminAuthService adminAuthService,
+            ClientTokenService clientTokenService) {
         this.platformService = platformService;
         this.adminAuthService = adminAuthService;
+        this.clientTokenService = clientTokenService;
+    }
+
+    @PostMapping("/users")
+    public ResponseEntity<ApiPayloads.UserResponse> createUser(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @Valid @RequestBody ApiPayloads.CreateUserRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(platformService.createUser(request));
+    }
+
+    @GetMapping("/users")
+    public List<ApiPayloads.UserResponse> listUsers(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.listUsers();
+    }
+
+    @PostMapping("/organizations")
+    public ResponseEntity<ApiPayloads.OrganizationResponse> createOrganization(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @Valid @RequestBody ApiPayloads.CreateOrganizationRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(platformService.createOrganization(request));
+    }
+
+    @GetMapping("/organizations")
+    public List<ApiPayloads.OrganizationResponse> listOrganizations(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.listOrganizations();
     }
 
     @PostMapping("/products")
@@ -114,5 +149,12 @@ public class PlatformAdminController {
         adminAuthService.requireAdmin(apiKey);
         return platformService.recentAuditEvents();
     }
-}
 
+    @PostMapping("/client-tokens")
+    public ResponseEntity<ApiPayloads.ClientTokenResponse> createClientToken(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @Valid @RequestBody ApiPayloads.CreateClientTokenRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(clientTokenService.create(request));
+    }
+}

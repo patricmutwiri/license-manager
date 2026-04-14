@@ -13,6 +13,7 @@ import com.mutwiri.licensemanager.entities.Machine;
 import com.mutwiri.licensemanager.entities.MachineStatus;
 import com.mutwiri.licensemanager.entities.Organization;
 import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.entities.UserRole;
 import com.mutwiri.licensemanager.exceptions.ConflictException;
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
 import com.mutwiri.licensemanager.repository.MachineRepository;
@@ -71,6 +72,21 @@ class LicensePlatformServiceTests {
         organization.setEmail("platform-org@example.com");
         organization.setDomain("platform.example.com");
         organization = organizationRepository.save(organization);
+    }
+
+    @Test
+    void shouldCreateAndListUsersAndOrganizationsForAdminWorkflows() {
+        ApiPayloads.UserResponse customer = platformService.createUser(new ApiPayloads.CreateUserRequest(
+                "API Customer", "api-customer@example.com", UserRole.CUSTOMER, null, null));
+        ApiPayloads.OrganizationResponse customerOrg = platformService.createOrganization(
+                new ApiPayloads.CreateOrganizationRequest("API Customer Org", "billing@example.com", "api-customer.example.com"));
+
+        assertThat(customer.role()).isEqualTo(UserRole.CUSTOMER);
+        assertThat(platformService.listUsers()).extracting(ApiPayloads.UserResponse::email)
+                .contains("api-customer@example.com");
+        assertThat(customerOrg.domain()).isEqualTo("api-customer.example.com");
+        assertThat(platformService.listOrganizations()).extracting(ApiPayloads.OrganizationResponse::domain)
+                .contains("api-customer.example.com");
     }
 
     @Test
@@ -157,4 +173,3 @@ class LicensePlatformServiceTests {
                 "Test Product", "customer@example.com", null, Map.of("plan", "test")));
     }
 }
-

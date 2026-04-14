@@ -11,24 +11,49 @@ import com.mutwiri.licensemanager.exceptions.InvalidLicenseRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.HexFormat;
 
 @Service
 public class CryptoService {
-    private static final String HMAC_SHA256 = "HmacSHA256";
-    private final byte[] signingSecret;
+    private static final String ED25519 = "Ed25519";
+    private final PrivateKey offlinePrivateKey;
+    private final PublicKey offlinePublicKey;
 
-    public CryptoService(@Value("${license.signing-secret:dev-license-signing-secret-change-me}") String signingSecret) {
-        if (signingSecret == null || signingSecret.length() < 24) {
-            throw new InvalidLicenseRequestException("license.signing-secret must be at least 24 characters.");
+    public CryptoService(
+            @Value("${license.offline.private-key-base64:}") String privateKeyBase64,
+            @Value("${license.offline.public-key-base64:}") String publicKeyBase64) {
+        try {
+            if (privateKeyBase64 != null && !privateKeyBase64.isBlank()) {
+                this.offlinePrivateKey = loadPrivateKey(privateKeyBase64);
+                this.offlinePublicKey = publicKeyBase64 == null || publicKeyBase64.isBlank()
+                        ? null
+                        : loadPublicKey(publicKeyBase64);
+            } else {
+                KeyPairGenerator generator = KeyPairGenerator.getInstance(ED25519);
+                KeyPair keyPair = generator.generateKeyPair();
+                this.offlinePrivateKey = keyPair.getPrivate();
+                this.offlinePublicKey = keyPair.getPublic();
+            }
+            if (this.offlinePublicKey == null) {
+                throw new InvalidLicenseRequestException("license.offline.public-key-base64 is required when a private key is configured.");
+            }
+        } catch (InvalidLicenseRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InvalidLicenseRequestException("Offline signing key configuration is invalid.");
         }
-        this.signingSecret = signingSecret.getBytes(StandardCharsets.UTF_8);
     }
 
     public String sha256(String value) {
@@ -42,17 +67,29 @@ public class CryptoService {
 
     public String sign(String payload) {
         try {
-            Mac mac = Mac.getInstance(HMAC_SHA256);
-            mac.init(new SecretKeySpec(signingSecret, HMAC_SHA256));
+            Signature signature = Signature.getInstance(ED25519);
+            signature.initSign(offlinePrivateKey);
+            signature.update(payload.getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().withoutPadding()
-                    .encodeToString(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
+                    .encodeToString(signature.sign());
         } catch (Exception e) {
             throw new IllegalStateException("Unable to sign license artifact", e);
         }
     }
 
     public boolean verify(String payload, String signature) {
-        return constantTimeEquals(sign(payload), signature);
+        try {
+            Signature verifier = Signature.getInstance(ED25519);
+            verifier.initVerify(offlinePublicKey);
+            verifier.update(payload.getBytes(StandardCharsets.UTF_8));
+            return verifier.verify(Base64.getUrlDecoder().decode(signature));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String offlinePublicKeyBase64() {
+        return Base64.getEncoder().encodeToString(offlinePublicKey.getEncoded());
     }
 
     public String encode(String value) {
@@ -63,18 +100,13 @@ public class CryptoService {
         return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
     }
 
-    private boolean constantTimeEquals(String expected, String provided) {
-        if (expected == null || provided == null) {
-            return false;
-        }
-        int diff = expected.length() ^ provided.length();
-        int max = Math.max(expected.length(), provided.length());
-        for (int i = 0; i < max; i++) {
-            char left = i < expected.length() ? expected.charAt(i) : 0;
-            char right = i < provided.length() ? provided.charAt(i) : 0;
-            diff |= left ^ right;
-        }
-        return diff == 0;
+    private PrivateKey loadPrivateKey(String privateKeyBase64) throws Exception {
+        byte[] decoded = Base64.getDecoder().decode(privateKeyBase64);
+        return KeyFactory.getInstance(ED25519).generatePrivate(new PKCS8EncodedKeySpec(decoded));
+    }
+
+    private PublicKey loadPublicKey(String publicKeyBase64) throws Exception {
+        byte[] decoded = Base64.getDecoder().decode(publicKeyBase64);
+        return KeyFactory.getInstance(ED25519).generatePublic(new X509EncodedKeySpec(decoded));
     }
 }
-

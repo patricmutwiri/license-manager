@@ -29,7 +29,7 @@ import java.util.Map;
 @Table(name = "audit_events")
 public class AuditEvent {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, length = 120)

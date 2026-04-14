@@ -10,6 +10,7 @@ package com.mutwiri.licensemanager.models.dto;
 import com.mutwiri.licensemanager.entities.LicenseStatus;
 import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.MachineStatus;
+import com.mutwiri.licensemanager.entities.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,40 @@ import java.util.Set;
 
 public final class ApiPayloads {
     private ApiPayloads() {
+    }
+
+    public record CreateUserRequest(
+            @NotBlank String name,
+            @Email @NotBlank String email,
+            UserRole role,
+            String provider,
+            String providerId) {
+    }
+
+    public record UserResponse(
+            Long id,
+            String name,
+            String email,
+            UserRole role,
+            String provider,
+            String providerId,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
+    }
+
+    public record CreateOrganizationRequest(
+            @NotBlank String name,
+            @Email @NotBlank String email,
+            @NotBlank String domain) {
+    }
+
+    public record OrganizationResponse(
+            Long id,
+            String name,
+            String email,
+            String domain,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
     }
 
     public record CreateProductRequest(
@@ -184,6 +219,9 @@ public final class ApiPayloads {
             LocalDateTime expiresAt) {
     }
 
+    public record OfflinePublicKeyResponse(String algorithm, String publicKeyBase64) {
+    }
+
     public record AuditEventResponse(
             Long id,
             String eventType,
@@ -194,5 +232,20 @@ public final class ApiPayloads {
             Map<String, String> metadata,
             LocalDateTime createdAt) {
     }
-}
 
+    public record CreateClientTokenRequest(
+            @NotBlank String name,
+            Long productId,
+            Long licenseId,
+            LocalDateTime expiresAt) {
+    }
+
+    public record ClientTokenResponse(
+            Long id,
+            String name,
+            String tokenPrefix,
+            String token,
+            boolean active,
+            LocalDateTime expiresAt) {
+    }
+}
