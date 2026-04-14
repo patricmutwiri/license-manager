@@ -7,6 +7,9 @@
 package com.mutwiri.licensemanager.controllers;
 
 import com.mutwiri.licensemanager.exceptions.ErrorResponse;
+import com.mutwiri.licensemanager.exceptions.ConflictException;
+import com.mutwiri.licensemanager.exceptions.ForbiddenException;
+import com.mutwiri.licensemanager.exceptions.InvalidLicenseRequestException;
 import com.mutwiri.licensemanager.exceptions.LicenseGenerationException;
 import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
@@ -36,6 +39,30 @@ public class GlobalExceptionHandler {
         log.warn("Resource not found: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse("NOT_FOUND", ex.getMessage(), System.currentTimeMillis()));
+    }
+
+    @ExceptionHandler(InvalidLicenseRequestException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ErrorResponse> handleInvalidLicenseRequest(InvalidLicenseRequestException ex) {
+        log.warn("Invalid license request: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("INVALID_LICENSE_REQUEST", ex.getMessage(), System.currentTimeMillis()));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+        log.warn("Conflict: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("CONFLICT", ex.getMessage(), System.currentTimeMillis()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+        log.warn("Forbidden request: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("FORBIDDEN", ex.getMessage(), System.currentTimeMillis()));
     }
 
     /**

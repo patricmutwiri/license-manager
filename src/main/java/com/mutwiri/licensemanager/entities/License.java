@@ -22,16 +22,18 @@ public class License {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
+    @Column(name = "license_key", unique = true, nullable = false)
     private String key;
 
-    @Column(nullable = false)
     private String hostname;
 
-    @Column(nullable = false)
     private String applicationName;
 
-    @Column(unique = true, nullable = false)
     private String email;
+
+    private String customerName;
+    private String customerEmail;
 
     @ElementCollection
     @CollectionTable(name = "license_custom_fields", joinColumns = @JoinColumn(name = "license_id"))
@@ -42,6 +44,13 @@ public class License {
     private LocalDateTime expiry;
 
     private boolean active = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private LicenseStatus status = LicenseStatus.ACTIVE;
+
+    private LocalDateTime revokedAt;
+    private LocalDateTime suspendedAt;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -56,4 +65,10 @@ public class License {
 
     @ManyToOne
     private Organization organization;
+
+    @ManyToOne
+    private Product product;
+
+    @ManyToOne
+    private Policy policy;
 }

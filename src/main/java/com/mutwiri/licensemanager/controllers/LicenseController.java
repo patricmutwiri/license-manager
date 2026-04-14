@@ -7,7 +7,9 @@
 package com.mutwiri.licensemanager.controllers;
 
 import com.mutwiri.licensemanager.models.dto.DtoMapper;
+import com.mutwiri.licensemanager.models.dto.ApiPayloads;
 import com.mutwiri.licensemanager.models.dto.LicenseResponse;
+import com.mutwiri.licensemanager.services.LicensePlatformService;
 import com.mutwiri.licensemanager.services.LicenseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,10 +29,12 @@ public class LicenseController {
 
     private final LicenseService licenseService;
     private final DtoMapper dtoMapper;
+    private final LicensePlatformService platformService;
 
-    public LicenseController(LicenseService licenseService, DtoMapper dtoMapper) {
+    public LicenseController(LicenseService licenseService, DtoMapper dtoMapper, LicensePlatformService platformService) {
         this.licenseService = licenseService;
         this.dtoMapper = dtoMapper;
+        this.platformService = platformService;
     }
 
     /**
@@ -52,8 +56,13 @@ public class LicenseController {
     @GetMapping("/validate")
     public ResponseEntity<Map<String, Object>> validateLicense(@RequestParam String key) {
         log.debug("Validating license key: {}", key);
-        boolean isValid = licenseService.validateLicense(key);
-        return ResponseEntity.ok(Map.of("key", key, "valid", isValid));
+        ApiPayloads.ValidationResponse validation = platformService.validate(
+                new ApiPayloads.ValidationRequest(key, null, null, null, null));
+        return ResponseEntity.ok(Map.of(
+                "key", key,
+                "valid", validation.valid(),
+                "code", validation.code(),
+                "detail", validation.detail()));
     }
 
     /**

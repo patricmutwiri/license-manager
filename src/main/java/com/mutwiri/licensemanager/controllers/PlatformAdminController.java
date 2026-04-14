@@ -1,0 +1,118 @@
+/**
+ * Project Name: license-manager
+ * Author: Patrick Mutwiri <dev@patric.xyz>
+ * Author URL: https://github.com/patricmutwiri
+ * Date: 2026-04-14
+ */
+
+package com.mutwiri.licensemanager.controllers;
+
+import com.mutwiri.licensemanager.models.dto.ApiPayloads;
+import com.mutwiri.licensemanager.services.AdminAuthService;
+import com.mutwiri.licensemanager.services.LicensePlatformService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/admin")
+public class PlatformAdminController {
+    private static final String ADMIN_KEY_HEADER = "X-Admin-Api-Key";
+
+    private final LicensePlatformService platformService;
+    private final AdminAuthService adminAuthService;
+
+    public PlatformAdminController(LicensePlatformService platformService, AdminAuthService adminAuthService) {
+        this.platformService = platformService;
+        this.adminAuthService = adminAuthService;
+    }
+
+    @PostMapping("/products")
+    public ResponseEntity<ApiPayloads.ProductResponse> createProduct(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @Valid @RequestBody ApiPayloads.CreateProductRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(platformService.createProduct(request));
+    }
+
+    @GetMapping("/products")
+    public List<ApiPayloads.ProductResponse> listProducts(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.listProducts();
+    }
+
+    @PostMapping("/products/{productId}/entitlements")
+    public ResponseEntity<ApiPayloads.EntitlementResponse> createEntitlement(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @PathVariable Long productId,
+            @Valid @RequestBody ApiPayloads.CreateEntitlementRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(platformService.createEntitlement(productId, request));
+    }
+
+    @PostMapping("/policies")
+    public ResponseEntity<ApiPayloads.PolicyResponse> createPolicy(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @Valid @RequestBody ApiPayloads.CreatePolicyRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(platformService.createPolicy(request));
+    }
+
+    @GetMapping("/policies")
+    public List<ApiPayloads.PolicyResponse> listPolicies(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.listPolicies();
+    }
+
+    @PostMapping("/licenses")
+    public ResponseEntity<ApiPayloads.LicenseLifecycleResponse> issueLicense(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @Valid @RequestBody ApiPayloads.IssueLicenseRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(platformService.issueLicense(request));
+    }
+
+    @GetMapping("/licenses")
+    public List<ApiPayloads.LicenseLifecycleResponse> listLicenses(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.listLicenses();
+    }
+
+    @PatchMapping("/licenses/{licenseId}/status")
+    public ApiPayloads.LicenseLifecycleResponse changeLicenseStatus(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @PathVariable Long licenseId,
+            @Valid @RequestBody ApiPayloads.ChangeLicenseStatusRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.changeLicenseStatus(licenseId, request.status());
+    }
+
+    @GetMapping("/licenses/{licenseId}/machines")
+    public List<ApiPayloads.MachineResponse> listMachines(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @PathVariable Long licenseId) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.listMachines(licenseId);
+    }
+
+    @GetMapping("/audit-events")
+    public List<ApiPayloads.AuditEventResponse> auditEvents(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey) {
+        adminAuthService.requireAdmin(apiKey);
+        return platformService.recentAuditEvents();
+    }
+}
+

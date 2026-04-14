@@ -7,6 +7,7 @@
 package com.mutwiri.licensemanager.services.impl;
 
 import com.mutwiri.licensemanager.entities.License;
+import com.mutwiri.licensemanager.entities.LicenseStatus;
 import com.mutwiri.licensemanager.entities.Organization;
 import com.mutwiri.licensemanager.entities.User;
 import com.mutwiri.licensemanager.exceptions.LicenseGenerationException;
@@ -61,6 +62,8 @@ public class LicenseServiceImpl implements LicenseService {
             License license = new License();
             license.setKey(UUID.randomUUID().toString());
             license.setExpiry(expiryDate != null ? expiryDate : LocalDateTime.now().plusYears(1));
+            license.setStatus(LicenseStatus.ACTIVE);
+            license.setActive(true);
             license.setHostname(hostname);
             license.setApplicationName(applicationName);
             license.setEmail(email);
@@ -87,7 +90,10 @@ public class LicenseServiceImpl implements LicenseService {
     public boolean validateLicense(String key) {
         try {
             return licenseRepository.findByKey(key)
-                    .map(license -> license.getExpiry().isAfter(LocalDateTime.now()))
+                    .map(license -> license.isActive()
+                            && license.getStatus() == LicenseStatus.ACTIVE
+                            && license.getExpiry() != null
+                            && license.getExpiry().isAfter(LocalDateTime.now()))
                     .orElse(false);
         } catch (Exception e) {
             log.error("Error validating license key: {}", key, e);

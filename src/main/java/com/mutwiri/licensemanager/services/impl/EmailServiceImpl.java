@@ -11,6 +11,8 @@ import com.mutwiri.licensemanager.services.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -21,19 +23,29 @@ import org.springframework.stereotype.Service;
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
+    private final boolean emailEnabled;
+    private final String mailFrom;
 
-    public EmailServiceImpl(JavaMailSender mailSender) {
+    public EmailServiceImpl(JavaMailSender mailSender,
+            @Value("${license.email.enabled:true}") boolean emailEnabled,
+            @Value("${spring.mail.from:noreply@localhost}") String mailFrom) {
         this.mailSender = mailSender;
+        this.emailEnabled = emailEnabled;
+        this.mailFrom = mailFrom;
     }
 
     @Override
     public void sendLicenseBackup(License license) {
+        if (!emailEnabled) {
+            log.debug("License backup email disabled for license: {}", license.getKey());
+            return;
+        }
         log.info("Sending license backup email for: {}", license.getKey());
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-            helper.setFrom("api@patric.xyz");
+            helper.setFrom(mailFrom);
             helper.setTo(license.getEmail() != null ? license.getEmail() : "");
             helper.setSubject("License Backup: " + license.getApplicationName());
 
@@ -41,8 +53,8 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(htmlBody, true);
             mailSender.send(message);
             log.info("License backup email sent successfully to: {}", license.getEmail());
-        } catch (MessagingException e) {
-            log.error("Failed to send license backup email to: {}", license.getEmail(), e);
+        } catch (MessagingException | MailException e) {
+            log.warn("Failed to send license backup email to {}: {}", license.getEmail(), e.getMessage());
         }
     }
 
