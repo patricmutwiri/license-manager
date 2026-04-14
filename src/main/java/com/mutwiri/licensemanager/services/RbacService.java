@@ -30,30 +30,42 @@ public class RbacService {
 
     @Transactional(readOnly = true)
     public void requireGlobal(Long actorUserId, Permission permission) {
-        if (actorUserId == null) {
+        if (hasGlobal(actorUserId, permission)) {
             return;
         }
-        var actor = userRepository.findById(actorUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Actor user with ID " + actorUserId + " not found"));
-        if (actor.getRole() != UserRole.ADMIN) {
-            throw new ForbiddenException("Actor is not allowed to perform " + permission + ".");
-        }
+        throw new ForbiddenException("Actor is not allowed to perform " + permission + ".");
     }
 
     @Transactional(readOnly = true)
     public void requireOrganization(Long actorUserId, Long organizationId, Permission permission) {
-        if (actorUserId == null) {
+        if (hasGlobal(actorUserId, permission) || hasOrganization(actorUserId, organizationId, permission)) {
             return;
+        }
+        throw new ForbiddenException("Actor is not allowed to perform " + permission + " for this organization.");
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasGlobal(Long actorUserId, Permission permission) {
+        if (actorUserId == null) {
+            return true;
+        }
+        var actor = userRepository.findById(actorUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Actor user with ID " + actorUserId + " not found"));
+        return actor.getRole() == UserRole.ADMIN;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasOrganization(Long actorUserId, Long organizationId, Permission permission) {
+        if (actorUserId == null) {
+            return true;
         }
         var actor = userRepository.findById(actorUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Actor user with ID " + actorUserId + " not found"));
         if (actor.getRole() == UserRole.ADMIN) {
-            return;
+            return true;
         }
         OrganizationMembership membership = membershipRepository.findByOrganizationIdAndUserId(organizationId, actorUserId)
-                .orElseThrow(() -> new ForbiddenException("Actor is not a member of this organization."));
-        if (!membership.getRole().grants(permission)) {
-            throw new ForbiddenException("Actor role " + membership.getRole() + " does not grant " + permission + ".");
-        }
+                .orElse(null);
+        return membership != null && membership.getRole().grants(permission);
     }
 }

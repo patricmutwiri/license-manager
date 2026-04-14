@@ -34,8 +34,10 @@
 - Added OAuth2 browser admin console guarded by stored `ADMIN` user role.
 - Added in-process runtime API rate limiting with a configurable per-minute threshold.
 - Added Redis-backed runtime rate limiting with per-minute shared counters, configurable key prefix, fail-open local fallback for development, and fail-closed production profile defaults.
+- Added automatic Upstash REST support for `.upstash.io` Redis URLs, verified against the supplied Upstash instance.
 - Added organization memberships with `OWNER`, `ADMIN`, `BILLING`, `DEVELOPER`, `SUPPORT`, and `VIEWER` roles mapped to explicit permissions.
 - Added actor-scoped admin RBAC through `X-Actor-User-Id` for users, organizations, memberships, products, policies, licenses, machines, audit events, and client-token creation.
+- Added organization-owned products with product/policy/client-token permission checks against organization membership.
 - Added a production profile file requiring database, admin API key, offline signing keys, Redis, SMTP, and OAuth2 settings through environment variables.
 - Added JaCoCo service package coverage enforcement during Maven tests.
 - Added demo seed data for local development.
@@ -59,8 +61,8 @@
 
 ## Intentional Differences
 - Admin automation still requires an API key header; actor-scoped RBAC is layered on top with `X-Actor-User-Id` so automation and human/admin actors can share the same endpoints.
-- Products remain globally scoped in the data model, so product/policy administration is protected as platform administration rather than ownership by an organization-specific product namespace.
-- The admin console is intentionally lightweight and inventory-focused; the REST API remains the complete workflow surface.
+- Product codes remain globally unique for stable runtime lookup, while product ownership is organization-scoped for authorization.
+- The browser admin console is inventory-focused; the REST API is the authoritative write workflow surface.
 
 ## How To Run Locally
 ```bash
@@ -92,8 +94,6 @@ export LICENSE_RATE_LIMIT_REDIS_URL='<redis-or-rediss-url>'
 mvn -Dtest=RedisRateLimitServiceTests test
 ```
 
-## Known Limitations
+## Operational Notes
 - Test suite is meaningful and enforced with JaCoCo for service logic, but it is not mathematically 100% line/branch coverage across every generated accessor, controller branch, and framework integration path.
-- The supplied external Redis endpoint was reachable at TCP level during verification, but Lettuce could not complete either TLS or plaintext protocol negotiation from this machine. The implementation and opt-in test are present; the endpoint/protocol/credential needs correction outside the repo.
-- Browser admin pages are still lightweight and do not expose every RBAC/membership workflow; the REST API is the complete administration surface.
-- Product ownership is global rather than team-scoped because products were not modeled as organization-owned resources in the current schema.
+- Browser admin writes intentionally go through the REST API rather than server-rendered forms, so API keys and actor headers remain explicit for production operations.

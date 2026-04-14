@@ -16,6 +16,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -39,6 +40,9 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
+    @ManyToOne
+    private Organization organization;
+
     private String description;
 
     @ElementCollection
@@ -55,4 +59,3 @@ public class Product {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 }
-

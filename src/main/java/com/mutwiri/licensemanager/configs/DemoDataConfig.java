@@ -59,7 +59,7 @@ public class DemoDataConfig {
             }
 
             ApiPayloads.ProductResponse product = platformService.createProduct(new ApiPayloads.CreateProductRequest(
-                    "demo-app", "Demo App", "Seeded product for local licensing flows", Map.of("tier", "demo")));
+                    organization.getId(), "demo-app", "Demo App", "Seeded product for local licensing flows", Map.of("tier", "demo")));
             platformService.createEntitlement(product.id(), new ApiPayloads.CreateEntitlementRequest(
                     "feature.reports", "Reports", "Access to reporting features"));
             platformService.createEntitlement(product.id(), new ApiPayloads.CreateEntitlementRequest(

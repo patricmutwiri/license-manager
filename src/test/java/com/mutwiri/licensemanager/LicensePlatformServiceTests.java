@@ -104,9 +104,21 @@ class LicensePlatformServiceTests {
                 new ApiPayloads.CreateMembershipRequest(owner.id(), customerOrg.id(), OrganizationRole.OWNER));
         platformService.createMembership(owner.id(),
                 new ApiPayloads.CreateMembershipRequest(viewer.id(), customerOrg.id(), OrganizationRole.VIEWER));
-        ApiPayloads.PolicyResponse policy = createPolicy(LicensingModel.NODE_LOCKED, 1, 1);
+        ApiPayloads.ProductResponse ownedProduct = platformService.createProduct(owner.id(),
+                new ApiPayloads.CreateProductRequest(customerOrg.id(), "rbac-product", "RBAC Product", "Owned product", Map.of()));
+        platformService.createEntitlement(owner.id(), ownedProduct.id(),
+                new ApiPayloads.CreateEntitlementRequest("feature.rbac", "RBAC Feature", "Feature"));
+        ApiPayloads.PolicyResponse policy = platformService.createPolicy(owner.id(), new ApiPayloads.CreatePolicyRequest(
+                ownedProduct.id(), "rbac-policy", "RBAC Policy", LicensingModel.NODE_LOCKED,
+                1, 1, 30, 1, 1, 5, "1.0.0", "2.0.0", Set.of("feature.rbac")));
 
         assertThat(ownerMembership.permissions()).contains(com.mutwiri.licensemanager.entities.Permission.LICENSE_ISSUE);
+        assertThat(ownedProduct.organizationId()).isEqualTo(customerOrg.id());
+        assertThat(platformService.listProducts(owner.id())).extracting(ApiPayloads.ProductResponse::code)
+                .contains("rbac-product");
+        assertThatThrownBy(() -> platformService.createProduct(viewer.id(),
+                new ApiPayloads.CreateProductRequest(customerOrg.id(), "viewer-product", "Viewer Product", null, Map.of())))
+                .isInstanceOf(ForbiddenException.class);
         assertThatThrownBy(() -> platformService.issueLicense(viewer.id(), new ApiPayloads.IssueLicenseRequest(
                 viewer.id(), customerOrg.id(), policy.id(), "Viewer", "viewer@example.com",
                 "Test Product", "viewer@example.com", null, Map.of())))
@@ -190,7 +202,7 @@ class LicensePlatformServiceTests {
 
     private ApiPayloads.PolicyResponse createPolicy(LicensingModel model, int maxMachines, int maxSeats) {
         ApiPayloads.ProductResponse product = platformService.createProduct(new ApiPayloads.CreateProductRequest(
-                "test-product", "Test Product", "Test product", Map.of()));
+                null, "test-product", "Test Product", "Test product", Map.of()));
         platformService.createEntitlement(product.id(), new ApiPayloads.CreateEntitlementRequest(
                 "feature.alpha", "Alpha", "Alpha feature"));
         return platformService.createPolicy(new ApiPayloads.CreatePolicyRequest(

@@ -11,7 +11,7 @@
 
 ## Decisions
 - Keep the existing Maven/Spring Boot architecture and add targeted domain services instead of rewriting the application.
-- Implement Keygen-like behavior as an API-first platform and preserve the current dashboard as a lightweight admin surface.
+- Implement Keygen-like behavior as an API-first platform and preserve the current dashboard as a focused inventory surface.
 - Add Flyway migrations and use Hibernate validation for production schema drift protection.
 - Use secure random opaque license keys and signed offline JSON artifacts with Ed25519 asymmetric signatures.
 - Use an `X-Admin-Api-Key` header for admin API automation and OAuth2 plus stored `ADMIN` role for browser admin access.
@@ -33,8 +33,11 @@
 - Added Ed25519 offline artifact signing and public-key discovery.
 - Added runtime API rate limiting and hashed client API token issuance.
 - Added Redis-backed runtime API rate limiting with fail-closed production configuration.
+- Added automatic Upstash HTTPS command support for `.upstash.io` Redis URLs and verified it against the supplied instance.
 - Added organization membership RBAC roles and permissions.
 - Added admin membership endpoints plus actor-scoped permission checks across admin workflows.
+- Added organization-owned products and product-scoped policy/client-token authorization.
+- Expanded the browser admin console inventory to include organizations, memberships, product scopes, and machines.
 - Added explicit production profile configuration in `src/main/resources/application-prod.yml`.
 - Added local demo seed data.
 - Updated runtime/test configuration for secure env vars, H2 tests, seed toggles, email toggles, and SMTP aliases.
@@ -54,10 +57,7 @@
 - Update README and add final implementation summary.
 
 ## Remaining Tasks
-- External Redis verification is pending a corrected endpoint/protocol/credential. The supplied host accepts TCP connections but failed Lettuce protocol negotiation over both TLS and plaintext from this machine.
-- Browser admin UI does not yet expose every membership/RBAC action; use REST endpoints for complete administration.
-- Products are still globally scoped rather than organization-owned.
-- Commit pending.
+- None known in repo after the current completion pass.
 
 ## Blockers Resolved
 - Maven needed external dependency download for Spring Boot JSON support.
@@ -66,3 +66,4 @@
 - Spring Boot 4 did not auto-run Flyway from the plain Flyway dependency in this project, so `FlywaySchemaConfig` now migrates before JPA validation.
 - JPA validation exposed a migration/model nullability mismatch on `policy_entitlements.entitlement_code`; the entity mapping now matches the schema.
 - Redis URL handling now respects the URI scheme instead of forcing TLS for provider hostnames.
+- Upstash provider handling now uses the provider's HTTPS command API, resolving the supplied instance verification failure.

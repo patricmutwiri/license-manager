@@ -78,7 +78,7 @@ Open the dashboard at `http://localhost:8080`.
 
 Seed data is created when `LICENSE_SEED_ENABLED=true`: a demo user, organization, product, entitlements, floating policy, and license.
 
-The platform inventory console is available at `http://localhost:8080/admin` for authenticated users whose stored role is `ADMIN`.
+The platform inventory console is available at `http://localhost:8080/admin` for authenticated users whose stored role is `ADMIN`. It shows organizations, team memberships, products, policies, licenses, machines, and audit events; write workflows are exposed through the admin REST API.
 
 ## Admin API
 
@@ -126,7 +126,7 @@ curl -X POST http://localhost:8080/api/v1/admin/organizations/1/memberships \
 curl -X POST http://localhost:8080/api/v1/admin/products \
   -H "Content-Type: application/json" \
   -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
-  -d '{"code":"desktop-app","name":"Desktop App","description":"Main product"}'
+  -d '{"organizationId":1,"code":"desktop-app","name":"Desktop App","description":"Main product"}'
 ```
 
 Create an entitlement:
@@ -310,4 +310,4 @@ mvn -Dtest=RedisRateLimitServiceTests test
 
 - Admin API authorization still supports an API key header for automation. Send `X-Actor-User-Id` when requests need to be evaluated against the full user/org RBAC matrix.
 - Runtime client tokens are stored hashed and returned only once. Rotate them if the raw token is lost.
-- Redis rate limiting is production-supported through `LICENSE_RATE_LIMIT_REDIS_URL`; the in-memory limiter remains a local fallback when Redis is not configured.
+- Redis rate limiting is production-supported through `LICENSE_RATE_LIMIT_REDIS_URL`; standard Redis uses Lettuce and Upstash URLs use Upstash's authenticated HTTPS command API. The in-memory limiter remains a local fallback when Redis is not configured.

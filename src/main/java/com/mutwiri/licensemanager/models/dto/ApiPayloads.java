@@ -80,6 +80,7 @@ public final class ApiPayloads {
     }
 
     public record CreateProductRequest(
+            Long organizationId,
             @NotBlank String code,
             @NotBlank String name,
             String description,
@@ -88,6 +89,8 @@ public final class ApiPayloads {
 
     public record ProductResponse(
             Long id,
+            Long organizationId,
+            String organizationDomain,
             String code,
             String name,
             String description,

@@ -205,18 +205,25 @@ public class LicensePlatformService {
 
     @Transactional
     public ApiPayloads.ProductResponse createProduct(Long actorUserId, ApiPayloads.CreateProductRequest request) {
-        rbacService.requireGlobal(actorUserId, Permission.PRODUCT_MANAGE);
+        Organization organization = request.organizationId() == null ? null : organization(request.organizationId());
+        if (organization == null) {
+            rbacService.requireGlobal(actorUserId, Permission.PRODUCT_MANAGE);
+        } else {
+            rbacService.requireOrganization(actorUserId, organization.getId(), Permission.PRODUCT_MANAGE);
+        }
         if (productRepository.existsByCode(request.code())) {
             throw new ConflictException("Product code already exists.");
         }
         Product product = new Product();
         product.setCode(normalizeCode(request.code()));
         product.setName(request.name().trim());
+        product.setOrganization(organization);
         product.setDescription(request.description());
         product.setMetadata(request.metadata() == null ? new HashMap<>() : new HashMap<>(request.metadata()));
         Product saved = productRepository.save(product);
         auditService.record("product.created", ADMIN_ACTOR, "product", saved.getId().toString(),
-                "Product created", Map.of("code", saved.getCode()));
+                "Product created", auditMetadata("code", saved.getCode(), "organizationId",
+                        organization == null ? null : organization.getId().toString()));
         return toProductResponse(saved);
     }
 
@@ -227,7 +234,13 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.ProductResponse> listProducts(Long actorUserId) {
-        rbacService.requireGlobal(actorUserId, Permission.PRODUCT_MANAGE);
+        if (actorUserId != null && !rbacService.hasGlobal(actorUserId, Permission.PRODUCT_MANAGE)) {
+            return membershipRepository.findByUserId(actorUserId).stream()
+                    .filter(membership -> membership.getRole().grants(Permission.PRODUCT_MANAGE))
+                    .flatMap(membership -> productRepository.findByOrganizationId(membership.getOrganization().getId()).stream())
+                    .map(this::toProductResponse)
+                    .toList();
+        }
         return productRepository.findAll().stream().map(this::toProductResponse).toList();
     }
 
@@ -238,8 +251,8 @@ public class LicensePlatformService {
 
     @Transactional
     public ApiPayloads.EntitlementResponse createEntitlement(Long actorUserId, Long productId, ApiPayloads.CreateEntitlementRequest request) {
-        rbacService.requireGlobal(actorUserId, Permission.PRODUCT_MANAGE);
         Product product = product(productId);
+        requireProductPermission(actorUserId, product, Permission.PRODUCT_MANAGE);
         String code = normalizeCode(request.code());
         entitlementRepository.findByProductIdAndCode(productId, code).ifPresent(existing -> {
             throw new ConflictException("Entitlement code already exists for this product.");
@@ -262,11 +275,11 @@ public class LicensePlatformService {
 
     @Transactional
     public ApiPayloads.PolicyResponse createPolicy(Long actorUserId, ApiPayloads.CreatePolicyRequest request) {
-        rbacService.requireGlobal(actorUserId, Permission.POLICY_MANAGE);
         if (policyRepository.existsByCode(request.code())) {
             throw new ConflictException("Policy code already exists.");
         }
         Product product = product(request.productId());
+        requireProductPermission(actorUserId, product, Permission.POLICY_MANAGE);
         Policy policy = new Policy();
         policy.setProduct(product);
         policy.setCode(normalizeCode(request.code()));
@@ -285,6 +298,15 @@ public class LicensePlatformService {
         auditService.record("policy.created", ADMIN_ACTOR, "policy", saved.getId().toString(),
                 "Policy created", Map.of("code", saved.getCode(), "product", product.getCode()));
         return toPolicyResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public void authorizeClientTokenCreation(Long actorUserId, ApiPayloads.CreateClientTokenRequest request) {
+        if (request.productId() == null) {
+            rbacService.requireGlobal(actorUserId, Permission.CLIENT_TOKEN_MANAGE);
+            return;
+        }
+        requireProductPermission(actorUserId, product(request.productId()), Permission.CLIENT_TOKEN_MANAGE);
     }
 
     @Transactional(readOnly = true)
@@ -691,6 +713,30 @@ public class LicensePlatformService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found"));
     }
 
+    private Organization organization(Long organizationId) {
+        return organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization with ID " + organizationId + " not found"));
+    }
+
+    private void requireProductPermission(Long actorUserId, Product product, Permission permission) {
+        if (product.getOrganization() == null) {
+            rbacService.requireGlobal(actorUserId, permission);
+            return;
+        }
+        rbacService.requireOrganization(actorUserId, product.getOrganization().getId(), permission);
+    }
+
+    private Map<String, String> auditMetadata(String firstKey, String firstValue, String secondKey, String secondValue) {
+        Map<String, String> metadata = new HashMap<>();
+        if (firstValue != null) {
+            metadata.put(firstKey, firstValue);
+        }
+        if (secondValue != null) {
+            metadata.put(secondKey, secondValue);
+        }
+        return metadata;
+    }
+
     private Policy policy(Long policyId) {
         return policyRepository.findById(policyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Policy with ID " + policyId + " not found"));
@@ -761,7 +807,10 @@ public class LicensePlatformService {
     }
 
     private ApiPayloads.ProductResponse toProductResponse(Product product) {
-        return new ApiPayloads.ProductResponse(product.getId(), product.getCode(), product.getName(),
+        return new ApiPayloads.ProductResponse(product.getId(),
+                product.getOrganization() == null ? null : product.getOrganization().getId(),
+                product.getOrganization() == null ? null : product.getOrganization().getDomain(),
+                product.getCode(), product.getName(),
                 product.getDescription(), product.getMetadata(), product.getCreatedAt(), product.getUpdatedAt());
     }
 

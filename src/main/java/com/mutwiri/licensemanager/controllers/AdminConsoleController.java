@@ -12,6 +12,8 @@ import com.mutwiri.licensemanager.exceptions.ForbiddenException;
 import com.mutwiri.licensemanager.repository.AuditEventRepository;
 import com.mutwiri.licensemanager.repository.LicenseRepository;
 import com.mutwiri.licensemanager.repository.MachineRepository;
+import com.mutwiri.licensemanager.repository.OrganizationMembershipRepository;
+import com.mutwiri.licensemanager.repository.OrganizationRepository;
 import com.mutwiri.licensemanager.repository.PolicyRepository;
 import com.mutwiri.licensemanager.repository.ProductRepository;
 import com.mutwiri.licensemanager.repository.UserRepository;
@@ -28,6 +30,8 @@ public class AdminConsoleController {
     private final LicenseRepository licenseRepository;
     private final MachineRepository machineRepository;
     private final AuditEventRepository auditEventRepository;
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationMembershipRepository membershipRepository;
     private final UserRepository userRepository;
 
     public AdminConsoleController(ProductRepository productRepository,
@@ -35,12 +39,16 @@ public class AdminConsoleController {
             LicenseRepository licenseRepository,
             MachineRepository machineRepository,
             AuditEventRepository auditEventRepository,
+            OrganizationRepository organizationRepository,
+            OrganizationMembershipRepository membershipRepository,
             UserRepository userRepository) {
         this.productRepository = productRepository;
         this.policyRepository = policyRepository;
         this.licenseRepository = licenseRepository;
         this.machineRepository = machineRepository;
         this.auditEventRepository = auditEventRepository;
+        this.organizationRepository = organizationRepository;
+        this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
     }
 
@@ -51,6 +59,9 @@ public class AdminConsoleController {
         model.addAttribute("policies", policyRepository.findAll());
         model.addAttribute("licenses", licenseRepository.findAll());
         model.addAttribute("machines", machineRepository.findAll());
+        model.addAttribute("organizations", organizationRepository.findAll());
+        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("memberships", membershipRepository.findAll());
         model.addAttribute("auditEvents", auditEventRepository.findTop100ByOrderByCreatedAtDesc());
         return "admin";
     }

@@ -8,11 +8,9 @@
 package com.mutwiri.licensemanager.controllers;
 
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
-import com.mutwiri.licensemanager.entities.Permission;
 import com.mutwiri.licensemanager.services.AdminAuthService;
 import com.mutwiri.licensemanager.services.ClientTokenService;
 import com.mutwiri.licensemanager.services.LicensePlatformService;
-import com.mutwiri.licensemanager.services.RbacService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,16 +34,13 @@ public class PlatformAdminController {
     private final LicensePlatformService platformService;
     private final AdminAuthService adminAuthService;
     private final ClientTokenService clientTokenService;
-    private final RbacService rbacService;
 
     public PlatformAdminController(LicensePlatformService platformService,
             AdminAuthService adminAuthService,
-            ClientTokenService clientTokenService,
-            RbacService rbacService) {
+            ClientTokenService clientTokenService) {
         this.platformService = platformService;
         this.adminAuthService = adminAuthService;
         this.clientTokenService = clientTokenService;
-        this.rbacService = rbacService;
     }
 
     @PostMapping("/users")
@@ -206,7 +201,7 @@ public class PlatformAdminController {
             @RequestHeader(value = ACTOR_HEADER, required = false) Long actorUserId,
             @Valid @RequestBody ApiPayloads.CreateClientTokenRequest request) {
         adminAuthService.requireAdmin(apiKey);
-        rbacService.requireGlobal(actorUserId, Permission.CLIENT_TOKEN_MANAGE);
+        platformService.authorizeClientTokenCreation(actorUserId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(clientTokenService.create(request));
     }
 }

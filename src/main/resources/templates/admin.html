@@ -29,6 +29,14 @@
 
         <section class="grid" style="margin-bottom: 2rem;">
             <div class="stats-card glass-card">
+                <label>Organizations</label>
+                <div style="font-size: 2rem; font-weight: 700;" th:text="${organizations.size()}">0</div>
+            </div>
+            <div class="stats-card glass-card">
+                <label>Members</label>
+                <div style="font-size: 2rem; font-weight: 700;" th:text="${memberships.size()}">0</div>
+            </div>
+            <div class="stats-card glass-card">
                 <label>Products</label>
                 <div style="font-size: 2rem; font-weight: 700;" th:text="${products.size()}">0</div>
             </div>
@@ -47,10 +55,29 @@
         </section>
 
         <section class="glass-card" style="margin-bottom: 2rem;">
+            <h2>Organizations</h2>
+            <div th:each="organization : ${organizations}" class="license-item">
+                <strong th:text="${organization.domain}">domain</strong>
+                <span th:text="${organization.name}">Organization</span>
+                <span th:text="${organization.email}">email</span>
+            </div>
+        </section>
+
+        <section class="glass-card" style="margin-bottom: 2rem;">
+            <h2>Team Memberships</h2>
+            <div th:each="membership : ${memberships}" class="license-item">
+                <strong th:text="${membership.organization.domain}">organization</strong>
+                <span th:text="${membership.user.email}">user</span>
+                <span th:text="${membership.role}">OWNER</span>
+            </div>
+        </section>
+
+        <section class="glass-card" style="margin-bottom: 2rem;">
             <h2>Products</h2>
             <div th:each="product : ${products}" class="license-item">
                 <strong th:text="${product.code}">code</strong>
                 <span th:text="${product.name}">Product</span>
+                <span th:text="${product.organization != null ? product.organization.domain : 'Global'}">scope</span>
             </div>
         </section>
 
@@ -69,6 +96,16 @@
                 <code class="license-key" th:text="${license.key}">lic</code>
                 <span th:text="${license.status}">ACTIVE</span>
                 <span th:text="${license.customerEmail}">customer</span>
+                <span th:text="${license.organization != null ? license.organization.domain : 'No organization'}">organization</span>
+            </div>
+        </section>
+
+        <section class="glass-card" style="margin-bottom: 2rem;">
+            <h2>Machines</h2>
+            <div th:each="machine : ${machines}" class="license-item">
+                <strong th:text="${machine.fingerprintHash}">fingerprint</strong>
+                <span th:text="${machine.status}">ACTIVE</span>
+                <span th:text="${machine.lastHeartbeatAt}">heartbeat</span>
             </div>
         </section>
 

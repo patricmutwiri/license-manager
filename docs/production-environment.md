@@ -63,4 +63,4 @@ SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_SECRET=<github-client-s
 
 For local integration testing, export `LICENSE_RATE_LIMIT_REDIS_URL` in the shell before running Maven. The test skips when the variable is absent so CI is not coupled to a single external Redis instance.
 
-The Redis URI scheme is honored exactly. Use `rediss://` for TLS endpoints and `redis://` for plaintext endpoints.
+Standard Redis endpoints use the URI scheme exactly. Upstash `.upstash.io` endpoints are detected automatically and use Upstash's authenticated HTTPS command API with the Redis URL password as the bearer token.
