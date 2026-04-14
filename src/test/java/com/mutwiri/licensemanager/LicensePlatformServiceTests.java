@@ -12,9 +12,11 @@ import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.Machine;
 import com.mutwiri.licensemanager.entities.MachineStatus;
 import com.mutwiri.licensemanager.entities.Organization;
+import com.mutwiri.licensemanager.entities.OrganizationRole;
 import com.mutwiri.licensemanager.entities.User;
 import com.mutwiri.licensemanager.entities.UserRole;
 import com.mutwiri.licensemanager.exceptions.ConflictException;
+import com.mutwiri.licensemanager.exceptions.ForbiddenException;
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
 import com.mutwiri.licensemanager.repository.MachineRepository;
 import com.mutwiri.licensemanager.repository.OrganizationRepository;
@@ -87,6 +89,35 @@ class LicensePlatformServiceTests {
         assertThat(customerOrg.domain()).isEqualTo("api-customer.example.com");
         assertThat(platformService.listOrganizations()).extracting(ApiPayloads.OrganizationResponse::domain)
                 .contains("api-customer.example.com");
+    }
+
+    @Test
+    void shouldEnforceOrganizationMembershipPermissions() {
+        ApiPayloads.UserResponse owner = platformService.createUser(new ApiPayloads.CreateUserRequest(
+                "Owner User", "owner@example.com", UserRole.CUSTOMER, null, null));
+        ApiPayloads.UserResponse viewer = platformService.createUser(new ApiPayloads.CreateUserRequest(
+                "Viewer User", "viewer@example.com", UserRole.CUSTOMER, null, null));
+        ApiPayloads.OrganizationResponse customerOrg = platformService.createOrganization(
+                new ApiPayloads.CreateOrganizationRequest("RBAC Org", "rbac@example.com", "rbac.example.com"));
+
+        ApiPayloads.MembershipResponse ownerMembership = platformService.createMembership(null,
+                new ApiPayloads.CreateMembershipRequest(owner.id(), customerOrg.id(), OrganizationRole.OWNER));
+        platformService.createMembership(owner.id(),
+                new ApiPayloads.CreateMembershipRequest(viewer.id(), customerOrg.id(), OrganizationRole.VIEWER));
+        ApiPayloads.PolicyResponse policy = createPolicy(LicensingModel.NODE_LOCKED, 1, 1);
+
+        assertThat(ownerMembership.permissions()).contains(com.mutwiri.licensemanager.entities.Permission.LICENSE_ISSUE);
+        assertThatThrownBy(() -> platformService.issueLicense(viewer.id(), new ApiPayloads.IssueLicenseRequest(
+                viewer.id(), customerOrg.id(), policy.id(), "Viewer", "viewer@example.com",
+                "Test Product", "viewer@example.com", null, Map.of())))
+                .isInstanceOf(ForbiddenException.class);
+
+        ApiPayloads.LicenseLifecycleResponse license = platformService.issueLicense(owner.id(),
+                new ApiPayloads.IssueLicenseRequest(viewer.id(), customerOrg.id(), policy.id(), "Viewer",
+                        "viewer@example.com", "Test Product", "viewer@example.com", null, Map.of()));
+        assertThat(platformService.listOrganizationLicenses(viewer.id(), customerOrg.id()))
+                .extracting(ApiPayloads.LicenseLifecycleResponse::key)
+                .contains(license.key());
     }
 
     @Test

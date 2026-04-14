@@ -18,6 +18,8 @@
 - Async email failures leaked through the async executor when SMTP was unavailable.
 - README described outdated Spring Boot/API behavior and incomplete setup.
 - Runtime licensing endpoints were unauthenticated until client API tokens were added.
+- Runtime rate limiting was process-local, which is unsafe for horizontally scaled production.
+- Admin APIs had no team/organization permission matrix beyond coarse API-key automation and stored global roles.
 
 ## What Was Implemented
 - Added domain models for products, policies, entitlements, machines, audit events, offline artifacts, license statuses, licensing models, and machine statuses.
@@ -31,6 +33,10 @@
 - Added Flyway schema migration, explicit Flyway-before-JPA startup wiring, and production default `ddl-auto=validate`.
 - Added OAuth2 browser admin console guarded by stored `ADMIN` user role.
 - Added in-process runtime API rate limiting with a configurable per-minute threshold.
+- Added Redis-backed runtime rate limiting with per-minute shared counters, configurable key prefix, fail-open local fallback for development, and fail-closed production profile defaults.
+- Added organization memberships with `OWNER`, `ADMIN`, `BILLING`, `DEVELOPER`, `SUPPORT`, and `VIEWER` roles mapped to explicit permissions.
+- Added actor-scoped admin RBAC through `X-Actor-User-Id` for users, organizations, memberships, products, policies, licenses, machines, audit events, and client-token creation.
+- Added a production profile file requiring database, admin API key, offline signing keys, Redis, SMTP, and OAuth2 settings through environment variables.
 - Added JaCoCo service package coverage enforcement during Maven tests.
 - Added demo seed data for local development.
 - Added audit events for important product, policy, license, machine, heartbeat, and offline actions.
@@ -47,12 +53,13 @@
 - Offline-capable signed license artifacts using asymmetric client-verifiable signatures.
 - Feature entitlements attached to policies and returned during validation.
 - Clean JSON REST API responses for admin and runtime clients.
-- Runtime client authentication, token hashing, and basic rate limiting.
+- Runtime client authentication, token hashing, and Redis-capable rate limiting.
+- Team/org authorization matrix for organization-scoped administration.
 - Audit trail for key licensing actions.
 
 ## Intentional Differences
-- Admin automation uses an API key header. Browser admin access uses OAuth2 plus an `ADMIN` role, but full multi-tenant team permissions are intentionally out of scope for this repository slice.
-- Runtime rate limiting is process-local. Horizontally scaled deployments should back this with a shared store.
+- Admin automation still requires an API key header; actor-scoped RBAC is layered on top with `X-Actor-User-Id` so automation and human/admin actors can share the same endpoints.
+- Products remain globally scoped in the data model, so product/policy administration is protected as platform administration rather than ownership by an organization-specific product namespace.
 - The admin console is intentionally lightweight and inventory-focused; the REST API remains the complete workflow surface.
 
 ## How To Run Locally
@@ -64,6 +71,7 @@ export SPRING_DATASOURCE_PASSWORD='change-me'
 export LICENSE_ADMIN_API_KEY='replace-with-long-random-secret'
 export LICENSE_OFFLINE_PRIVATE_KEY_BASE64='<pkcs8-ed25519-private-key>'
 export LICENSE_OFFLINE_PUBLIC_KEY_BASE64='<x509-ed25519-public-key>'
+export LICENSE_RATE_LIMIT_REDIS_URL='<redis-or-rediss-url>'
 export LICENSE_SEED_ENABLED='true'
 mvn spring-boot:run
 ```
@@ -77,7 +85,15 @@ mvn clean test
 
 Last verified command: `mvn clean test`.
 
+Redis integration test:
+
+```bash
+export LICENSE_RATE_LIMIT_REDIS_URL='<redis-or-rediss-url>'
+mvn -Dtest=RedisRateLimitServiceTests test
+```
+
 ## Known Limitations
 - Test suite is meaningful and enforced with JaCoCo for service logic, but it is not mathematically 100% line/branch coverage across every generated accessor, controller branch, and framework integration path.
-- Customer/team RBAC beyond the stored `ADMIN`/`CUSTOMER` role split is not modeled.
-- Runtime rate limiting is in-memory and should be replaced with Redis or an API gateway limiter for multi-instance deployments.
+- The supplied external Redis endpoint was reachable at TCP level during verification, but Lettuce could not complete either TLS or plaintext protocol negotiation from this machine. The implementation and opt-in test are present; the endpoint/protocol/credential needs correction outside the repo.
+- Browser admin pages are still lightweight and do not expose every RBAC/membership workflow; the REST API is the complete administration surface.
+- Product ownership is global rather than team-scoped because products were not modeled as organization-owned resources in the current schema.

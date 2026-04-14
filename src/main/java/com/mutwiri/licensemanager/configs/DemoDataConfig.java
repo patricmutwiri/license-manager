@@ -9,6 +9,7 @@ package com.mutwiri.licensemanager.configs;
 
 import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.Organization;
+import com.mutwiri.licensemanager.entities.OrganizationRole;
 import com.mutwiri.licensemanager.entities.User;
 import com.mutwiri.licensemanager.entities.UserRole;
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
@@ -50,6 +51,8 @@ public class DemoDataConfig {
                 demo.setDomain("demo.example.test");
                 return organizationRepository.save(demo);
             });
+            platformService.createMembership(null, new ApiPayloads.CreateMembershipRequest(
+                    user.getId(), organization.getId(), OrganizationRole.OWNER));
 
             if (productRepository.existsByCode("demo-app")) {
                 return;

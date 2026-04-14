@@ -1,0 +1,75 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_MAX_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_MIN_IDLE:2}
+      connection-timeout: ${SPRING_DATASOURCE_CONNECTION_TIMEOUT_MS:30000}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+  mail:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT:465}
+    username: ${SMTP_USER}
+    password: ${SMTP_PASS}
+    from: ${SMTP_MAIL_FROM:${SMTP_USER}}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          ssl:
+            enable: ${SMTP_TLS:true}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET}
+          github:
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_ID}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_SECRET}
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+license:
+  admin:
+    api-key: ${LICENSE_ADMIN_API_KEY}
+  offline:
+    private-key-base64: ${LICENSE_OFFLINE_PRIVATE_KEY_BASE64}
+    public-key-base64: ${LICENSE_OFFLINE_PUBLIC_KEY_BASE64}
+  seed:
+    enabled: ${LICENSE_SEED_ENABLED:false}
+  email:
+    enabled: ${LICENSE_EMAIL_ENABLED:true}
+  rate-limit:
+    redis-url: ${LICENSE_RATE_LIMIT_REDIS_URL}
+    redis-key-prefix: ${LICENSE_RATE_LIMIT_REDIS_KEY_PREFIX:license-manager:rate-limit}
+    runtime-per-minute: ${LICENSE_RATE_LIMIT_RUNTIME_PER_MINUTE:120}
+    fail-open: ${LICENSE_RATE_LIMIT_FAIL_OPEN:false}
+
+logging:
+  level:
+    root: INFO
+    com.mutwiri.licensemanager: INFO
+    org.springframework.security: WARN

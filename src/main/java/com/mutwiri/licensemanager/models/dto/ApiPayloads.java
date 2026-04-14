@@ -10,6 +10,8 @@ package com.mutwiri.licensemanager.models.dto;
 import com.mutwiri.licensemanager.entities.LicenseStatus;
 import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.MachineStatus;
+import com.mutwiri.licensemanager.entities.OrganizationRole;
+import com.mutwiri.licensemanager.entities.Permission;
 import com.mutwiri.licensemanager.entities.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -55,6 +57,24 @@ public final class ApiPayloads {
             String name,
             String email,
             String domain,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
+    }
+
+    public record CreateMembershipRequest(
+            @NotNull Long userId,
+            @NotNull Long organizationId,
+            @NotNull OrganizationRole role) {
+    }
+
+    public record MembershipResponse(
+            Long id,
+            Long userId,
+            String userEmail,
+            Long organizationId,
+            String organizationDomain,
+            OrganizationRole role,
+            Set<Permission> permissions,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
     }

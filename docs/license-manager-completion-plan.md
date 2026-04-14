@@ -15,8 +15,10 @@
 - Add Flyway migrations and use Hibernate validation for production schema drift protection.
 - Use secure random opaque license keys and signed offline JSON artifacts with Ed25519 asymmetric signatures.
 - Use an `X-Admin-Api-Key` header for admin API automation and OAuth2 plus stored `ADMIN` role for browser admin access.
+- Add actor-scoped RBAC with `X-Actor-User-Id` and explicit organization membership roles for human/team authorization.
 - Require hashed runtime client API tokens for client licensing endpoints.
 - Use idempotent machine activation by `(license, fingerprint)` to support reinstalls safely.
+- Use Redis for production rate limiting when configured, with local in-memory fallback only for development/test.
 
 ## Completed Tasks
 - Created this progress plan.
@@ -30,6 +32,10 @@
 - Added Flyway initial schema migration, explicit Flyway-before-JPA startup wiring, and production `ddl-auto=validate` default.
 - Added Ed25519 offline artifact signing and public-key discovery.
 - Added runtime API rate limiting and hashed client API token issuance.
+- Added Redis-backed runtime API rate limiting with fail-closed production configuration.
+- Added organization membership RBAC roles and permissions.
+- Added admin membership endpoints plus actor-scoped permission checks across admin workflows.
+- Added explicit production profile configuration in `src/main/resources/application-prod.yml`.
 - Added local demo seed data.
 - Updated runtime/test configuration for secure env vars, H2 tests, seed toggles, email toggles, and SMTP aliases.
 - Added tests for platform lifecycle, activation, floating seats, heartbeat reclamation, offline artifacts, version bounds, admin auth, Flyway plus Hibernate schema validation, crypto signing, and rate limiting.
@@ -48,6 +54,9 @@
 - Update README and add final implementation summary.
 
 ## Remaining Tasks
+- External Redis verification is pending a corrected endpoint/protocol/credential. The supplied host accepts TCP connections but failed Lettuce protocol negotiation over both TLS and plaintext from this machine.
+- Browser admin UI does not yet expose every membership/RBAC action; use REST endpoints for complete administration.
+- Products are still globally scoped rather than organization-owned.
 - Commit pending.
 
 ## Blockers Resolved
@@ -56,3 +65,4 @@
 - Async email failures were caught and made configurable with `license.email.enabled`.
 - Spring Boot 4 did not auto-run Flyway from the plain Flyway dependency in this project, so `FlywaySchemaConfig` now migrates before JPA validation.
 - JPA validation exposed a migration/model nullability mismatch on `policy_entitlements.entitlement_code`; the entity mapping now matches the schema.
+- Redis URL handling now respects the URI scheme instead of forcing TLS for provider hostnames.

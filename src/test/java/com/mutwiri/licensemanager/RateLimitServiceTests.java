@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RateLimitServiceTests {
     @Test
     void shouldLimitRequestsPerRuntimeKeyPerMinute() {
-        RateLimitService rateLimitService = new RateLimitService(2);
+        RateLimitService rateLimitService = new RateLimitService(2, "", "license-manager:test", true);
 
         rateLimitService.check("client-a:/validate");
         rateLimitService.check("client-a:/validate");

@@ -15,7 +15,9 @@ import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.Machine;
 import com.mutwiri.licensemanager.entities.MachineStatus;
 import com.mutwiri.licensemanager.entities.OfflineLicenseArtifact;
+import com.mutwiri.licensemanager.entities.OrganizationMembership;
 import com.mutwiri.licensemanager.entities.Organization;
+import com.mutwiri.licensemanager.entities.Permission;
 import com.mutwiri.licensemanager.entities.Policy;
 import com.mutwiri.licensemanager.entities.Product;
 import com.mutwiri.licensemanager.entities.User;
@@ -28,6 +30,7 @@ import com.mutwiri.licensemanager.repository.EntitlementRepository;
 import com.mutwiri.licensemanager.repository.LicenseRepository;
 import com.mutwiri.licensemanager.repository.MachineRepository;
 import com.mutwiri.licensemanager.repository.OfflineLicenseArtifactRepository;
+import com.mutwiri.licensemanager.repository.OrganizationMembershipRepository;
 import com.mutwiri.licensemanager.repository.OrganizationRepository;
 import com.mutwiri.licensemanager.repository.PolicyRepository;
 import com.mutwiri.licensemanager.repository.ProductRepository;
@@ -58,8 +61,10 @@ public class LicensePlatformService {
     private final OfflineLicenseArtifactRepository artifactRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationMembershipRepository membershipRepository;
     private final AuditService auditService;
     private final CryptoService cryptoService;
+    private final RbacService rbacService;
     private final ObjectMapper objectMapper;
 
     public LicensePlatformService(ProductRepository productRepository,
@@ -70,8 +75,10 @@ public class LicensePlatformService {
             OfflineLicenseArtifactRepository artifactRepository,
             UserRepository userRepository,
             OrganizationRepository organizationRepository,
+            OrganizationMembershipRepository membershipRepository,
             AuditService auditService,
             CryptoService cryptoService,
+            RbacService rbacService,
             ObjectMapper objectMapper) {
         this.productRepository = productRepository;
         this.policyRepository = policyRepository;
@@ -81,13 +88,21 @@ public class LicensePlatformService {
         this.artifactRepository = artifactRepository;
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
+        this.membershipRepository = membershipRepository;
         this.auditService = auditService;
         this.cryptoService = cryptoService;
+        this.rbacService = rbacService;
         this.objectMapper = objectMapper;
     }
 
     @Transactional
     public ApiPayloads.UserResponse createUser(ApiPayloads.CreateUserRequest request) {
+        return createUser(null, request);
+    }
+
+    @Transactional
+    public ApiPayloads.UserResponse createUser(Long actorUserId, ApiPayloads.CreateUserRequest request) {
+        rbacService.requireGlobal(actorUserId, Permission.USER_MANAGE);
         String email = request.email().trim().toLowerCase();
         String name = request.name().trim();
         if (userRepository.existsByEmail(email) || userRepository.existsByName(name)) {
@@ -107,11 +122,23 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.UserResponse> listUsers() {
+        return listUsers(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.UserResponse> listUsers(Long actorUserId) {
+        rbacService.requireGlobal(actorUserId, Permission.USER_MANAGE);
         return userRepository.findAll().stream().map(this::toUserResponse).toList();
     }
 
     @Transactional
     public ApiPayloads.OrganizationResponse createOrganization(ApiPayloads.CreateOrganizationRequest request) {
+        return createOrganization(null, request);
+    }
+
+    @Transactional
+    public ApiPayloads.OrganizationResponse createOrganization(Long actorUserId, ApiPayloads.CreateOrganizationRequest request) {
+        rbacService.requireGlobal(actorUserId, Permission.ORGANIZATION_UPDATE);
         String name = request.name().trim();
         String email = request.email().trim().toLowerCase();
         String domain = request.domain().trim().toLowerCase();
@@ -132,11 +159,53 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.OrganizationResponse> listOrganizations() {
+        return listOrganizations(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.OrganizationResponse> listOrganizations(Long actorUserId) {
+        rbacService.requireGlobal(actorUserId, Permission.ORGANIZATION_READ);
         return organizationRepository.findAll().stream().map(this::toOrganizationResponse).toList();
     }
 
     @Transactional
+    public ApiPayloads.MembershipResponse createMembership(Long actorUserId, ApiPayloads.CreateMembershipRequest request) {
+        rbacService.requireOrganization(actorUserId, request.organizationId(), Permission.MEMBERSHIP_MANAGE);
+        if (membershipRepository.existsByOrganizationIdAndUserId(request.organizationId(), request.userId())) {
+            return membershipRepository.findByOrganizationIdAndUserId(request.organizationId(), request.userId())
+                    .map(this::toMembershipResponse)
+                    .orElseThrow(() -> new ConflictException("User is already a member of this organization."));
+        }
+        User user = userRepository.findById(request.userId())
+                .orElseThrow(() -> new ResourceNotFoundException("User with ID " + request.userId() + " not found"));
+        Organization organization = organizationRepository.findById(request.organizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Organization with ID " + request.organizationId() + " not found"));
+        OrganizationMembership membership = new OrganizationMembership();
+        membership.setUser(user);
+        membership.setOrganization(organization);
+        membership.setRole(request.role());
+        OrganizationMembership saved = membershipRepository.save(membership);
+        auditService.record("membership.created", ADMIN_ACTOR, "organization_membership", saved.getId().toString(),
+                "Organization membership created", Map.of("role", saved.getRole().name()));
+        return toMembershipResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.MembershipResponse> listMemberships(Long actorUserId, Long organizationId) {
+        rbacService.requireOrganization(actorUserId, organizationId, Permission.MEMBERSHIP_MANAGE);
+        return membershipRepository.findByOrganizationId(organizationId).stream()
+                .map(this::toMembershipResponse)
+                .toList();
+    }
+
+    @Transactional
     public ApiPayloads.ProductResponse createProduct(ApiPayloads.CreateProductRequest request) {
+        return createProduct(null, request);
+    }
+
+    @Transactional
+    public ApiPayloads.ProductResponse createProduct(Long actorUserId, ApiPayloads.CreateProductRequest request) {
+        rbacService.requireGlobal(actorUserId, Permission.PRODUCT_MANAGE);
         if (productRepository.existsByCode(request.code())) {
             throw new ConflictException("Product code already exists.");
         }
@@ -153,11 +222,23 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.ProductResponse> listProducts() {
+        return listProducts(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.ProductResponse> listProducts(Long actorUserId) {
+        rbacService.requireGlobal(actorUserId, Permission.PRODUCT_MANAGE);
         return productRepository.findAll().stream().map(this::toProductResponse).toList();
     }
 
     @Transactional
     public ApiPayloads.EntitlementResponse createEntitlement(Long productId, ApiPayloads.CreateEntitlementRequest request) {
+        return createEntitlement(null, productId, request);
+    }
+
+    @Transactional
+    public ApiPayloads.EntitlementResponse createEntitlement(Long actorUserId, Long productId, ApiPayloads.CreateEntitlementRequest request) {
+        rbacService.requireGlobal(actorUserId, Permission.PRODUCT_MANAGE);
         Product product = product(productId);
         String code = normalizeCode(request.code());
         entitlementRepository.findByProductIdAndCode(productId, code).ifPresent(existing -> {
@@ -176,6 +257,12 @@ public class LicensePlatformService {
 
     @Transactional
     public ApiPayloads.PolicyResponse createPolicy(ApiPayloads.CreatePolicyRequest request) {
+        return createPolicy(null, request);
+    }
+
+    @Transactional
+    public ApiPayloads.PolicyResponse createPolicy(Long actorUserId, ApiPayloads.CreatePolicyRequest request) {
+        rbacService.requireGlobal(actorUserId, Permission.POLICY_MANAGE);
         if (policyRepository.existsByCode(request.code())) {
             throw new ConflictException("Policy code already exists.");
         }
@@ -202,11 +289,23 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.PolicyResponse> listPolicies() {
+        return listPolicies(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.PolicyResponse> listPolicies(Long actorUserId) {
+        rbacService.requireGlobal(actorUserId, Permission.POLICY_MANAGE);
         return policyRepository.findAll().stream().map(this::toPolicyResponse).toList();
     }
 
     @Transactional
     public ApiPayloads.LicenseLifecycleResponse issueLicense(ApiPayloads.IssueLicenseRequest request) {
+        return issueLicense(null, request);
+    }
+
+    @Transactional
+    public ApiPayloads.LicenseLifecycleResponse issueLicense(Long actorUserId, ApiPayloads.IssueLicenseRequest request) {
+        rbacService.requireOrganization(actorUserId, request.organizationId(), Permission.LICENSE_ISSUE);
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("User with ID " + request.userId() + " not found"));
         Organization organization = organizationRepository.findById(request.organizationId())
@@ -235,7 +334,15 @@ public class LicensePlatformService {
 
     @Transactional
     public ApiPayloads.LicenseLifecycleResponse changeLicenseStatus(Long licenseId, LicenseStatus status) {
+        return changeLicenseStatus(null, licenseId, status);
+    }
+
+    @Transactional
+    public ApiPayloads.LicenseLifecycleResponse changeLicenseStatus(Long actorUserId, Long licenseId, LicenseStatus status) {
         License license = license(licenseId);
+        if (license.getOrganization() != null) {
+            rbacService.requireOrganization(actorUserId, license.getOrganization().getId(), Permission.LICENSE_UPDATE);
+        }
         applyStatus(license, status);
         License saved = licenseRepository.save(license);
         auditService.record("license.status_changed", ADMIN_ACTOR, "license", saved.getId().toString(),
@@ -245,7 +352,21 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.LicenseLifecycleResponse> listLicenses() {
+        return listLicenses(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.LicenseLifecycleResponse> listLicenses(Long actorUserId) {
+        rbacService.requireGlobal(actorUserId, Permission.LICENSE_READ);
         return licenseRepository.findAll().stream().map(this::toLicenseLifecycleResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.LicenseLifecycleResponse> listOrganizationLicenses(Long actorUserId, Long organizationId) {
+        rbacService.requireOrganization(actorUserId, organizationId, Permission.LICENSE_READ);
+        return licenseRepository.findByOrganizationId(organizationId).stream()
+                .map(this::toLicenseLifecycleResponse)
+                .toList();
     }
 
     @Transactional
@@ -337,6 +458,15 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.MachineResponse> listMachines(Long licenseId) {
+        return listMachines(null, licenseId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.MachineResponse> listMachines(Long actorUserId, Long licenseId) {
+        License license = license(licenseId);
+        if (license.getOrganization() != null) {
+            rbacService.requireOrganization(actorUserId, license.getOrganization().getId(), Permission.MACHINE_READ);
+        }
         return machineRepository.findByLicenseId(licenseId).stream().map(this::toMachineResponse).toList();
     }
 
@@ -402,6 +532,12 @@ public class LicensePlatformService {
 
     @Transactional(readOnly = true)
     public List<ApiPayloads.AuditEventResponse> recentAuditEvents() {
+        return recentAuditEvents(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiPayloads.AuditEventResponse> recentAuditEvents(Long actorUserId) {
+        rbacService.requireGlobal(actorUserId, Permission.AUDIT_READ);
         return auditService.recent().stream().map(this::toAuditResponse).toList();
     }
 
@@ -600,6 +736,19 @@ public class LicensePlatformService {
     private ApiPayloads.OrganizationResponse toOrganizationResponse(Organization organization) {
         return new ApiPayloads.OrganizationResponse(organization.getId(), organization.getName(),
                 organization.getEmail(), organization.getDomain(), organization.getCreatedAt(), organization.getUpdatedAt());
+    }
+
+    private ApiPayloads.MembershipResponse toMembershipResponse(OrganizationMembership membership) {
+        return new ApiPayloads.MembershipResponse(
+                membership.getId(),
+                membership.getUser().getId(),
+                membership.getUser().getEmail(),
+                membership.getOrganization().getId(),
+                membership.getOrganization().getDomain(),
+                membership.getRole(),
+                membership.getRole().permissions(),
+                membership.getCreatedAt(),
+                membership.getUpdatedAt());
     }
 
     private String firstNonBlank(String... values) {

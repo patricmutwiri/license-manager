@@ -55,11 +55,14 @@ export LICENSE_OFFLINE_PRIVATE_KEY_BASE64='<pkcs8-ed25519-private-key>'
 export LICENSE_OFFLINE_PUBLIC_KEY_BASE64='<x509-ed25519-public-key>'
 export LICENSE_SEED_ENABLED='true'
 export LICENSE_EMAIL_ENABLED='true'
+export LICENSE_RATE_LIMIT_REDIS_URL='<redis-or-rediss-url>'
+export LICENSE_RATE_LIMIT_REDIS_KEY_PREFIX='license-manager:rate-limit'
 export LICENSE_RATE_LIMIT_RUNTIME_PER_MINUTE='120'
+export LICENSE_RATE_LIMIT_FAIL_OPEN='false'
 export PORT='8080'
 ```
 
-The app also accepts the older `SMTP_MAIL_HOST`, `SMTP_MAIL_PORT`, `SMTP_MAIL_USERNAME`, `SMTP_MAIL_PASSWORD`, `SMTP_MAIL_AUTH`, and `SMTP_MAIL_TLS` names.
+The app also accepts the older `SMTP_MAIL_HOST`, `SMTP_MAIL_PORT`, `SMTP_MAIL_USERNAME`, `SMTP_MAIL_PASSWORD`, `SMTP_MAIL_AUTH`, and `SMTP_MAIL_TLS` names. Production profile defaults live in `src/main/resources/application-prod.yml` and intentionally use unresolved placeholders for required secrets so production startup fails fast when configuration is incomplete.
 
 If offline key env vars are omitted in local development, the app generates an ephemeral Ed25519 key pair at startup. Production should use stable keys so issued artifacts remain verifiable across restarts.
 
@@ -85,6 +88,23 @@ All admin endpoints require:
 X-Admin-Api-Key: <LICENSE_ADMIN_API_KEY>
 ```
 
+For actor-scoped RBAC, also send:
+
+```http
+X-Actor-User-Id: <user id>
+```
+
+When `X-Actor-User-Id` is present, global `ADMIN` users can administer the platform, and organization members are evaluated through this matrix:
+
+| Organization Role | Permissions |
+| --- | --- |
+| `OWNER` | All organization permissions |
+| `ADMIN` | Organization, membership, product, policy, license, machine, audit, and client-token management |
+| `BILLING` | Organization read, license read, audit read |
+| `DEVELOPER` | Organization read, license read, machine read, client-token management |
+| `SUPPORT` | Organization read, license read/update, machine read, audit read |
+| `VIEWER` | Organization read, license read, machine read, audit read |
+
 Create a customer, organization, and product:
 
 ```bash
@@ -97,6 +117,11 @@ curl -X POST http://localhost:8080/api/v1/admin/organizations \
   -H "Content-Type: application/json" \
   -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
   -d '{"name":"Acme Inc","email":"billing@acme.test","domain":"acme.test"}'
+
+curl -X POST http://localhost:8080/api/v1/admin/organizations/1/memberships \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
+  -d '{"userId":1,"organizationId":1,"role":"OWNER"}'
 
 curl -X POST http://localhost:8080/api/v1/admin/products \
   -H "Content-Type: application/json" \
@@ -165,6 +190,8 @@ Useful reads:
 
 - `GET /api/v1/admin/users`
 - `GET /api/v1/admin/organizations`
+- `GET /api/v1/admin/organizations/{organizationId}/memberships`
+- `GET /api/v1/admin/organizations/{organizationId}/licenses`
 - `GET /api/v1/admin/products`
 - `GET /api/v1/admin/policies`
 - `GET /api/v1/admin/licenses`
@@ -261,6 +288,7 @@ curl -X GET http://localhost:8080/api/v1/runtime/offline/public-key \
 - Services: license generation compatibility service, platform licensing service, audit service, crypto service, admin auth service, client token service, rate-limit service, email service.
 - Data: Flyway migrations plus JPA entities for users, organizations, products, policies, entitlements, licenses, machines, offline artifacts, client API tokens, and audit events.
 - Validation flow: request -> license lookup -> status/expiry/product/policy/version checks -> optional fingerprint machine check -> entitlement and heartbeat response.
+- Admin authorization flow: admin API key -> optional actor lookup -> global user role or organization membership permission check -> service action.
 - Offline flow: active license plus active machine -> Ed25519 signed artifact -> local verification with public key, signature, and TTL.
 
 ## Tests
@@ -269,10 +297,17 @@ curl -X GET http://localhost:8080/api/v1/runtime/offline/public-key \
 mvn clean test
 ```
 
-Current tests cover legacy license generation, platform issuance/validation, activation/deactivation behavior, floating seat enforcement, heartbeat reclamation, offline artifact verification, version policy bounds, admin API key checks, Flyway schema migration, Ed25519 signing, and runtime rate limiting. JaCoCo enforces service package coverage during `mvn clean test`.
+Current tests cover legacy license generation, platform issuance/validation, activation/deactivation behavior, floating seat enforcement, heartbeat reclamation, offline artifact verification, version policy bounds, organization RBAC enforcement, admin API key checks, Flyway schema migration, Ed25519 signing, and runtime rate limiting. JaCoCo enforces service package coverage during `mvn clean test`.
+
+Redis integration is opt-in:
+
+```bash
+export LICENSE_RATE_LIMIT_REDIS_URL='<redis-or-rediss-url>'
+mvn -Dtest=RedisRateLimitServiceTests test
+```
 
 ## Trade-offs
 
-- Admin API authorization still supports an API key header for automation. The browser admin console uses OAuth2 login plus the stored `ADMIN` user role.
+- Admin API authorization still supports an API key header for automation. Send `X-Actor-User-Id` when requests need to be evaluated against the full user/org RBAC matrix.
 - Runtime client tokens are stored hashed and returned only once. Rotate them if the raw token is lost.
-- In-process rate limiting is suitable for a single app instance. Use a shared limiter such as Redis for horizontally scaled production deployments.
+- Redis rate limiting is production-supported through `LICENSE_RATE_LIMIT_REDIS_URL`; the in-memory limiter remains a local fallback when Redis is not configured.
