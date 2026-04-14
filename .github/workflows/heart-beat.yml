@@ -2,7 +2,7 @@ name: Heart Beat
 
 on:
   schedule:
-    - cron: "0 0 * * *" # every day at 00:00 UTC
+    - cron: "*/30 * * * *" # every 30 minutes
   workflow_dispatch:
     inputs:
       url:
@@ -33,7 +33,7 @@ jobs:
 
           target="${MANUAL_HEARTBEAT_URL:-${DEFAULT_HEARTBEAT_URL:-}}"
           if [[ -z "${target}" ]]; then
-            echo "::error::Configure repository secret HEARTBEAT_URL, for example https://your-project.supabase.co/rest/v1/ or https://your-app.example.com/actuator/health/readiness."
+            echo "::error::Configure repository secret HEARTBEAT_URL, for example https://your-project.co/rest/v1/ or https://your-app.example.com/actuator/health/readiness."
             exit 1
           fi
           if [[ ! "${target}" =~ ^https:// ]]; then

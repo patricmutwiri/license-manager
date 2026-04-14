@@ -6,14 +6,12 @@
 
 package com.mutwiri.licensemanager.controllers;
 
-import com.mutwiri.licensemanager.entities.License;
-import com.mutwiri.licensemanager.entities.Organization;
-import com.mutwiri.licensemanager.entities.User;
-import com.mutwiri.licensemanager.repository.UserRepository;
-import com.mutwiri.licensemanager.services.LicenseService;
-import com.mutwiri.licensemanager.services.OrganizationService;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
@@ -22,11 +20,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.mutwiri.licensemanager.entities.License;
+import com.mutwiri.licensemanager.entities.Organization;
+import com.mutwiri.licensemanager.entities.User;
+import com.mutwiri.licensemanager.repository.UserRepository;
+import com.mutwiri.licensemanager.services.LicenseService;
+import com.mutwiri.licensemanager.services.OrganizationService;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 
 @Controller
 @Slf4j
