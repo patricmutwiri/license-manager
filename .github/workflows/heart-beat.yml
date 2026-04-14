@@ -1,0 +1,61 @@
+name: Heart Beat
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # every day at 00:00 UTC
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Optional URL override for a one-off manual ping"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: heart-beat
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DEFAULT_HEARTBEAT_URL: ${{ secrets.HEARTBEAT_URL }}
+      MANUAL_HEARTBEAT_URL: ${{ inputs.url }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - name: Ping endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          target="${MANUAL_HEARTBEAT_URL:-${DEFAULT_HEARTBEAT_URL:-}}"
+          if [[ -z "${target}" ]]; then
+            echo "::error::Configure repository secret HEARTBEAT_URL, for example https://your-project.supabase.co/rest/v1/ or https://your-app.example.com/actuator/health/readiness."
+            exit 1
+          fi
+          if [[ ! "${target}" =~ ^https:// ]]; then
+            echo "::error::HEARTBEAT_URL must use https://."
+            exit 1
+          fi
+
+          curl_args=(
+            -I
+            --fail
+            --silent
+            --show-error
+            --location
+            --connect-timeout 10
+            --max-time 30
+            --retry 3
+            --retry-delay 10
+            --retry-all-errors
+          )
+
+          if [[ -n "${SUPABASE_ANON_KEY:-}" ]]; then
+            curl_args+=(-H "apikey: ${SUPABASE_ANON_KEY}")
+          fi
+
+          curl "${curl_args[@]}" "${target}"

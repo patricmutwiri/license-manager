@@ -342,6 +342,26 @@ curl -X GET http://localhost:8080/api/v1/runtime/offline/public-key \
 - Java SDK starter: `sdk/java/LicenseManagerClient.java`
 - Kubernetes manifests: `deploy/kubernetes/`
 - Backup/restore helpers: `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`
+- Daily keep-alive ping: `.github/workflows/heart-beat.yml`
+
+## Keep-Alive Ping
+
+The GitHub Actions workflow `.github/workflows/heart-beat.yml` runs once per day and pings the configured endpoint.
+
+Configure this repository secret:
+
+```text
+HEARTBEAT_URL=https://your-domain.example.com/actuator/health/readiness
+```
+
+For Supabase keep-alive, set `HEARTBEAT_URL` to the Supabase REST endpoint and add `SUPABASE_ANON_KEY`:
+
+```text
+HEARTBEAT_URL=https://your-project.supabase.co/rest/v1/
+SUPABASE_ANON_KEY=<anon-key>
+```
+
+The workflow requires `https://`, retries transient failures, can be run manually, and accepts a manual URL override for one-off checks.
 
 ## Tests
 
