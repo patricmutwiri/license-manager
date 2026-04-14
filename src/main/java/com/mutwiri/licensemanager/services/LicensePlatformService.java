@@ -8,6 +8,7 @@
 package com.mutwiri.licensemanager.services;
 
 import com.mutwiri.licensemanager.entities.AuditEvent;
+import com.mutwiri.licensemanager.entities.ClientApiToken;
 import com.mutwiri.licensemanager.entities.Entitlement;
 import com.mutwiri.licensemanager.entities.License;
 import com.mutwiri.licensemanager.entities.LicenseStatus;
@@ -26,6 +27,7 @@ import com.mutwiri.licensemanager.exceptions.ConflictException;
 import com.mutwiri.licensemanager.exceptions.InvalidLicenseRequestException;
 import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
+import com.mutwiri.licensemanager.repository.ClientApiTokenRepository;
 import com.mutwiri.licensemanager.repository.EntitlementRepository;
 import com.mutwiri.licensemanager.repository.LicenseRepository;
 import com.mutwiri.licensemanager.repository.MachineRepository;
@@ -62,6 +64,7 @@ public class LicensePlatformService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMembershipRepository membershipRepository;
+    private final ClientApiTokenRepository clientTokenRepository;
     private final AuditService auditService;
     private final CryptoService cryptoService;
     private final RbacService rbacService;
@@ -76,6 +79,7 @@ public class LicensePlatformService {
             UserRepository userRepository,
             OrganizationRepository organizationRepository,
             OrganizationMembershipRepository membershipRepository,
+            ClientApiTokenRepository clientTokenRepository,
             AuditService auditService,
             CryptoService cryptoService,
             RbacService rbacService,
@@ -89,6 +93,7 @@ public class LicensePlatformService {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.membershipRepository = membershipRepository;
+        this.clientTokenRepository = clientTokenRepository;
         this.auditService = auditService;
         this.cryptoService = cryptoService;
         this.rbacService = rbacService;
@@ -307,6 +312,17 @@ public class LicensePlatformService {
             return;
         }
         requireProductPermission(actorUserId, product(request.productId()), Permission.CLIENT_TOKEN_MANAGE);
+    }
+
+    @Transactional(readOnly = true)
+    public void authorizeClientTokenLifecycle(Long actorUserId, Long tokenId) {
+        ClientApiToken token = clientTokenRepository.findById(tokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client token with ID " + tokenId + " not found"));
+        if (token.getProduct() == null) {
+            rbacService.requireGlobal(actorUserId, Permission.CLIENT_TOKEN_MANAGE);
+            return;
+        }
+        requireProductPermission(actorUserId, token.getProduct(), Permission.CLIENT_TOKEN_MANAGE);
     }
 
     @Transactional(readOnly = true)

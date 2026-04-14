@@ -12,6 +12,7 @@ import com.mutwiri.licensemanager.entities.MachineStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +22,9 @@ public interface MachineRepository extends JpaRepository<Machine, Long> {
 
     List<Machine> findByLicenseId(Long licenseId);
 
+    List<Machine> findByStatusAndLastHeartbeatAtBefore(MachineStatus status, LocalDateTime cutoff);
+
+    List<Machine> findByStatusAndUpdatedAtBefore(MachineStatus status, LocalDateTime cutoff);
+
     long countByLicenseIdAndStatus(Long licenseId, MachineStatus status);
 }
-

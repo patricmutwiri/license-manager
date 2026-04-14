@@ -8,8 +8,6 @@
 package com.mutwiri.licensemanager.entities;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -23,46 +21,36 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Data
-@Table(name = "client_api_tokens")
-public class ClientApiToken {
+@Table(name = "billing_subscriptions")
+public class BillingSubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String name;
+    @ManyToOne(optional = false)
+    private Organization organization;
 
-    @Column(nullable = false, length = 20)
-    private String tokenPrefix;
+    @ManyToOne(optional = false)
+    private BillingPlan plan;
 
-    @Column(nullable = false, unique = true, length = 128)
-    private String tokenHash;
-
-    @Column(nullable = false)
-    private boolean active = true;
-
-    @ElementCollection
     @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "client_api_token_scopes", joinColumns = @jakarta.persistence.JoinColumn(name = "client_api_token_id"))
-    @Column(name = "scope", nullable = false)
-    private Set<RuntimeTokenScope> scopes = new HashSet<>(EnumSet.allOf(RuntimeTokenScope.class));
+    @Column(nullable = false)
+    private SubscriptionStatus status = SubscriptionStatus.ACTIVE;
 
-    private LocalDateTime lastUsedAt;
-    private LocalDateTime revokedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BillingProvider provider = BillingProvider.INTERNAL;
 
-    private LocalDateTime expiresAt;
+    private String providerCustomerId;
+    private String providerSubscriptionId;
+    private LocalDateTime currentPeriodStart;
+    private LocalDateTime currentPeriodEnd;
 
-    @ManyToOne
-    private Product product;
-
-    @ManyToOne
-    private License license;
+    @Column(nullable = false)
+    private boolean cancelAtPeriodEnd;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

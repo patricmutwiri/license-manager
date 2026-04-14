@@ -23,11 +23,13 @@ public enum OrganizationRole {
             Permission.LICENSE_UPDATE,
             Permission.MACHINE_READ,
             Permission.AUDIT_READ,
-            Permission.CLIENT_TOKEN_MANAGE)),
+            Permission.CLIENT_TOKEN_MANAGE,
+            Permission.BILLING_MANAGE)),
     BILLING(EnumSet.of(
             Permission.ORGANIZATION_READ,
             Permission.LICENSE_READ,
-            Permission.AUDIT_READ)),
+            Permission.AUDIT_READ,
+            Permission.BILLING_MANAGE)),
     DEVELOPER(EnumSet.of(
             Permission.ORGANIZATION_READ,
             Permission.LICENSE_READ,

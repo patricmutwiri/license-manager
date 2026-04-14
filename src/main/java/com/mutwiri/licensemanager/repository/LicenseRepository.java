@@ -11,6 +11,7 @@ import com.mutwiri.licensemanager.entities.LicenseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,4 +28,6 @@ public interface LicenseRepository extends JpaRepository<License, Long> {
         List<License> findByPolicyId(Long policyId);
 
         List<License> findByStatus(LicenseStatus status);
+
+        List<License> findByStatusAndActiveTrueAndExpiryBefore(LicenseStatus status, LocalDateTime expiry);
 }

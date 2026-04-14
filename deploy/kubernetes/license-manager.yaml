@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: license-manager
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: license-manager-secrets
+  namespace: license-manager
+type: Opaque
+stringData:
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres.example.internal:5432/license_manager"
+  SPRING_DATASOURCE_USERNAME: "license_manager"
+  SPRING_DATASOURCE_PASSWORD: "replace-with-secret-manager-value"
+  LICENSE_ADMIN_API_KEY: "replace-with-long-random-secret"
+  LICENSE_OFFLINE_PRIVATE_KEY_BASE64: "replace-with-ed25519-private-key"
+  LICENSE_OFFLINE_PUBLIC_KEY_BASE64: "replace-with-ed25519-public-key"
+  LICENSE_RATE_LIMIT_REDIS_URL: "rediss://default:replace-with-token@redis.example.internal:6379"
+  SMTP_HOST: "smtp.example.com"
+  SMTP_PORT: "465"
+  SMTP_USER: "license-manager@example.com"
+  SMTP_PASS: "replace-with-secret-manager-value"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: license-manager-config
+  namespace: license-manager
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+  SPRING_FLYWAY_ENABLED: "true"
+  LICENSE_RATE_LIMIT_FAIL_OPEN: "false"
+  LICENSE_RATE_LIMIT_RUNTIME_PER_MINUTE: "120"
+  LICENSE_JOBS_ENABLED: "true"
+  LICENSE_JOBS_EXPIRY_SWEEP_DELAY_MS: "300000"
+  LICENSE_JOBS_HEARTBEAT_CLEANUP_DELAY_MS: "300000"
+  LICENSE_JOBS_STALE_MACHINE_CLEANUP_DELAY_MS: "3600000"
+  LICENSE_JOBS_SUBSCRIPTION_EXPIRY_DELAY_MS: "3600000"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: license-manager
+  namespace: license-manager
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: license-manager
+  template:
+    metadata:
+      labels:
+        app: license-manager
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/license-manager:replace-with-version
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: license-manager-config
+            - secretRef:
+                name: license-manager-secrets
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: license-manager
+  namespace: license-manager
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: license-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: license-manager
+  namespace: license-manager
+  labels:
+    app: license-manager
+spec:
+  selector:
+    app: license-manager
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: license-manager
+  namespace: license-manager
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - license-manager.example.com
+      secretName: license-manager-tls
+  rules:
+    - host: license-manager.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: license-manager
+                port:
+                  name: http

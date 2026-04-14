@@ -97,3 +97,44 @@ mvn -Dtest=RedisRateLimitServiceTests test
 ## Operational Notes
 - Test suite is meaningful and enforced with JaCoCo for service logic, but it is not mathematically 100% line/branch coverage across every generated accessor, controller branch, and framework integration path.
 - Browser admin writes intentionally go through the REST API rather than server-rendered forms, so API keys and actor headers remain explicit for production operations.
+
+## Enterprise Remediation Pass
+
+### Additional Findings
+- The backend had become production-leaning, but the browser admin page still behaved like an inventory report instead of an operations console.
+- Runtime client credentials were hashed, but still coarse-grained before scoped token enforcement, rotation, revocation, and last-used tracking.
+- Lifecycle maintenance depended too heavily on request-triggered behavior; expiry and cleanup needed scheduled jobs.
+- Billing, OpenAPI governance, deployment manifests, backup automation, CLI/SDK access, and observability artifacts were missing or only documented at a high level.
+
+### Additional Implementation
+- Reworked `/admin` into a searchable operations console covering dashboard signals, customer accounts, products/policies, licenses, machines, runtime access, billing, and audit activity.
+- Added scoped runtime token semantics with per-endpoint enforcement, bearer-token compatibility, rotation, revocation, last-used tracking, and token lifecycle audit events.
+- Added billing-ready internal models for plans and subscriptions, provider fields, organization RBAC checks, admin API endpoints, schema migration, and tests.
+- Added scheduled operations jobs for license expiry, missed heartbeat marking, stale machine deactivation, and subscription expiry, with idempotent state transitions and audit events.
+- Added Actuator health probes, Prometheus metrics exposure, request correlation IDs, and production profile settings for operational endpoints.
+- Added OpenAPI governance at `docs/openapi.yaml`, a shell CLI at `cli/license-manager.sh`, and a Java runtime SDK starter at `sdk/java/LicenseManagerClient.java`.
+- Added Kubernetes deployment, service, ingress, disruption budget, and backup CronJob manifests under `deploy/kubernetes/`.
+- Added local backup and restore helpers under `scripts/`.
+- Added enterprise gap assessment, prioritized roadmap, architecture plan, deployment runbook, and threat model documentation.
+- Added tests for scoped client tokens, billing service behavior, scheduler lifecycle sweeps, and admin console rendering.
+
+### Keygen.sh-like Behavior Improved
+- Runtime credentials now behave more like OAuth2-style scoped client credentials while preserving legacy `X-License-Client-Key` compatibility.
+- License maintenance now continues without validation traffic through scheduled lifecycle jobs.
+- Operators have a more practical console for triage and evidence review.
+- Billing records can be modeled independently of a payment provider and later connected to Stripe or another adapter.
+- API consumers now have an OpenAPI contract, CLI entry point, and Java SDK starter.
+
+### Intentional Differences After This Pass
+- The application still does not embed a full OAuth2/OIDC authorization server. It uses scoped opaque tokens with bearer compatibility, rotation, revocation, and auditability.
+- SAML SSO and SCIM are documented and architecturally planned, but not fully implemented in this pass because they require IdP and provisioning contract decisions.
+- Billing does not collect money yet. The internal billing source of truth and provider integration points are present; payment provider webhooks remain adapter work.
+- PostgreSQL row-level security is not enabled. Tenant isolation remains enforced in service/RBAC logic, with RLS documented as the next hardening layer if direct database access becomes part of operations.
+- Multi-replica scheduler safety currently depends on operational deployment choice. The runbook recommends one scheduler-enabled replica until distributed locks are added.
+
+### Latest Verification
+```bash
+mvn clean test
+```
+
+Result: build success, 20 tests run, 0 failures, 0 errors, 1 Redis integration test skipped unless `LICENSE_RATE_LIMIT_REDIS_URL` is supplied.

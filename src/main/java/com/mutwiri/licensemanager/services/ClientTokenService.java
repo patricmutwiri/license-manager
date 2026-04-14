@@ -10,6 +10,7 @@ package com.mutwiri.licensemanager.services;
 import com.mutwiri.licensemanager.entities.ClientApiToken;
 import com.mutwiri.licensemanager.entities.License;
 import com.mutwiri.licensemanager.entities.Product;
+import com.mutwiri.licensemanager.entities.RuntimeTokenScope;
 import com.mutwiri.licensemanager.exceptions.ForbiddenException;
 import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
@@ -22,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ClientTokenService {
@@ -53,17 +56,49 @@ public class ClientTokenService {
         apiToken.setTokenPrefix(token.substring(0, 16));
         apiToken.setTokenHash(cryptoService.sha256(token));
         apiToken.setExpiresAt(request.expiresAt());
+        apiToken.setScopes(scopesOrDefault(request.scopes()));
         apiToken.setProduct(request.productId() == null ? null : product(request.productId()));
         apiToken.setLicense(request.licenseId() == null ? null : license(request.licenseId()));
         ClientApiToken saved = tokenRepository.save(apiToken);
         auditService.record("client_token.created", "admin-api", "client_api_token", saved.getId().toString(),
                 "Runtime client token created", Map.of("prefix", saved.getTokenPrefix()));
         return new ApiPayloads.ClientTokenResponse(saved.getId(), saved.getName(), saved.getTokenPrefix(), token,
-                saved.isActive(), saved.getExpiresAt());
+                saved.isActive(), saved.getScopes(), saved.getExpiresAt());
     }
 
-    @Transactional(readOnly = true)
-    public ClientApiToken requireRuntimeToken(String token) {
+    @Transactional
+    public ApiPayloads.ClientTokenResponse rotate(Long tokenId, ApiPayloads.RotateClientTokenRequest request) {
+        ClientApiToken apiToken = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client token with ID " + tokenId + " not found"));
+        String token = generateToken();
+        apiToken.setTokenPrefix(token.substring(0, 16));
+        apiToken.setTokenHash(cryptoService.sha256(token));
+        apiToken.setScopes(scopesOrDefault(request.scopes()));
+        apiToken.setExpiresAt(request.expiresAt());
+        apiToken.setActive(true);
+        apiToken.setRevokedAt(null);
+        ClientApiToken saved = tokenRepository.save(apiToken);
+        auditService.record("client_token.rotated", "admin-api", "client_api_token", saved.getId().toString(),
+                "Runtime client token rotated", Map.of("prefix", saved.getTokenPrefix()));
+        return new ApiPayloads.ClientTokenResponse(saved.getId(), saved.getName(), saved.getTokenPrefix(), token,
+                saved.isActive(), saved.getScopes(), saved.getExpiresAt());
+    }
+
+    @Transactional
+    public ApiPayloads.ClientTokenResponse revoke(Long tokenId) {
+        ClientApiToken apiToken = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client token with ID " + tokenId + " not found"));
+        apiToken.setActive(false);
+        apiToken.setRevokedAt(LocalDateTime.now());
+        ClientApiToken saved = tokenRepository.save(apiToken);
+        auditService.record("client_token.revoked", "admin-api", "client_api_token", saved.getId().toString(),
+                "Runtime client token revoked", Map.of("prefix", saved.getTokenPrefix()));
+        return new ApiPayloads.ClientTokenResponse(saved.getId(), saved.getName(), saved.getTokenPrefix(), null,
+                saved.isActive(), saved.getScopes(), saved.getExpiresAt());
+    }
+
+    @Transactional
+    public ClientApiToken requireRuntimeToken(String token, RuntimeTokenScope requiredScope) {
         if (token == null || token.isBlank()) {
             throw new ForbiddenException("Valid X-License-Client-Key header is required.");
         }
@@ -75,13 +110,29 @@ public class ClientTokenService {
         if (apiToken.getExpiresAt() != null && apiToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new ForbiddenException("Runtime client token is expired.");
         }
+        if (!apiToken.getScopes().contains(requiredScope)) {
+            throw new ForbiddenException("Runtime client token does not grant " + requiredScope + ".");
+        }
+        apiToken.setLastUsedAt(LocalDateTime.now());
         return apiToken;
+    }
+
+    @Transactional
+    public ClientApiToken requireRuntimeToken(String token) {
+        return requireRuntimeToken(token, RuntimeTokenScope.LICENSE_VALIDATE);
     }
 
     private String generateToken() {
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
         return "lct_" + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private Set<RuntimeTokenScope> scopesOrDefault(Set<RuntimeTokenScope> scopes) {
+        if (scopes == null || scopes.isEmpty()) {
+            return EnumSet.allOf(RuntimeTokenScope.class);
+        }
+        return EnumSet.copyOf(scopes);
     }
 
     private Product product(Long id) {

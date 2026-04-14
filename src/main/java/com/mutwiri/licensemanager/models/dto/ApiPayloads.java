@@ -12,6 +12,10 @@ import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.MachineStatus;
 import com.mutwiri.licensemanager.entities.OrganizationRole;
 import com.mutwiri.licensemanager.entities.Permission;
+import com.mutwiri.licensemanager.entities.RuntimeTokenScope;
+import com.mutwiri.licensemanager.entities.BillingInterval;
+import com.mutwiri.licensemanager.entities.BillingProvider;
+import com.mutwiri.licensemanager.entities.SubscriptionStatus;
 import com.mutwiri.licensemanager.entities.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -256,10 +260,72 @@ public final class ApiPayloads {
             LocalDateTime createdAt) {
     }
 
+    public record CreateBillingPlanRequest(
+            @NotBlank String code,
+            @NotBlank String name,
+            @NotNull Long policyId,
+            @Min(0) long amountCents,
+            @NotBlank String currency,
+            @NotNull BillingInterval billingInterval,
+            @Min(0) int trialDays,
+            BillingProvider provider,
+            String providerPriceId,
+            Map<String, String> metadata) {
+    }
+
+    public record BillingPlanResponse(
+            Long id,
+            String code,
+            String name,
+            Long policyId,
+            String policyCode,
+            long amountCents,
+            String currency,
+            BillingInterval billingInterval,
+            int trialDays,
+            boolean active,
+            BillingProvider provider,
+            String providerPriceId,
+            Map<String, String> metadata) {
+    }
+
+    public record CreateBillingSubscriptionRequest(
+            @NotNull Long organizationId,
+            @NotNull Long planId,
+            SubscriptionStatus status,
+            BillingProvider provider,
+            String providerCustomerId,
+            String providerSubscriptionId,
+            LocalDateTime currentPeriodStart,
+            LocalDateTime currentPeriodEnd,
+            boolean cancelAtPeriodEnd) {
+    }
+
+    public record BillingSubscriptionResponse(
+            Long id,
+            Long organizationId,
+            String organizationDomain,
+            Long planId,
+            String planCode,
+            SubscriptionStatus status,
+            BillingProvider provider,
+            String providerCustomerId,
+            String providerSubscriptionId,
+            LocalDateTime currentPeriodStart,
+            LocalDateTime currentPeriodEnd,
+            boolean cancelAtPeriodEnd) {
+    }
+
     public record CreateClientTokenRequest(
             @NotBlank String name,
             Long productId,
             Long licenseId,
+            Set<RuntimeTokenScope> scopes,
+            LocalDateTime expiresAt) {
+    }
+
+    public record RotateClientTokenRequest(
+            Set<RuntimeTokenScope> scopes,
             LocalDateTime expiresAt) {
     }
 
@@ -269,6 +335,7 @@ public final class ApiPayloads {
             String tokenPrefix,
             String token,
             boolean active,
+            Set<RuntimeTokenScope> scopes,
             LocalDateTime expiresAt) {
     }
 }

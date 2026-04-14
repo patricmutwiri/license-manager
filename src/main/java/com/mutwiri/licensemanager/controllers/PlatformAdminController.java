@@ -9,6 +9,7 @@ package com.mutwiri.licensemanager.controllers;
 
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
 import com.mutwiri.licensemanager.services.AdminAuthService;
+import com.mutwiri.licensemanager.services.BillingService;
 import com.mutwiri.licensemanager.services.ClientTokenService;
 import com.mutwiri.licensemanager.services.LicensePlatformService;
 import jakarta.validation.Valid;
@@ -34,13 +35,16 @@ public class PlatformAdminController {
     private final LicensePlatformService platformService;
     private final AdminAuthService adminAuthService;
     private final ClientTokenService clientTokenService;
+    private final BillingService billingService;
 
     public PlatformAdminController(LicensePlatformService platformService,
             AdminAuthService adminAuthService,
-            ClientTokenService clientTokenService) {
+            ClientTokenService clientTokenService,
+            BillingService billingService) {
         this.platformService = platformService;
         this.adminAuthService = adminAuthService;
         this.clientTokenService = clientTokenService;
+        this.billingService = billingService;
     }
 
     @PostMapping("/users")
@@ -195,6 +199,41 @@ public class PlatformAdminController {
         return platformService.recentAuditEvents(actorUserId);
     }
 
+    @PostMapping("/billing/plans")
+    public ResponseEntity<ApiPayloads.BillingPlanResponse> createBillingPlan(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @RequestHeader(value = ACTOR_HEADER, required = false) Long actorUserId,
+            @Valid @RequestBody ApiPayloads.CreateBillingPlanRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(billingService.createPlan(actorUserId, request));
+    }
+
+    @GetMapping("/billing/plans")
+    public List<ApiPayloads.BillingPlanResponse> listBillingPlans(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @RequestHeader(value = ACTOR_HEADER, required = false) Long actorUserId) {
+        adminAuthService.requireAdmin(apiKey);
+        return billingService.listPlans(actorUserId);
+    }
+
+    @PostMapping("/billing/subscriptions")
+    public ResponseEntity<ApiPayloads.BillingSubscriptionResponse> createBillingSubscription(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @RequestHeader(value = ACTOR_HEADER, required = false) Long actorUserId,
+            @Valid @RequestBody ApiPayloads.CreateBillingSubscriptionRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        return ResponseEntity.status(HttpStatus.CREATED).body(billingService.createSubscription(actorUserId, request));
+    }
+
+    @GetMapping("/organizations/{organizationId}/billing/subscriptions")
+    public List<ApiPayloads.BillingSubscriptionResponse> listOrganizationBillingSubscriptions(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @RequestHeader(value = ACTOR_HEADER, required = false) Long actorUserId,
+            @PathVariable Long organizationId) {
+        adminAuthService.requireAdmin(apiKey);
+        return billingService.listOrganizationSubscriptions(actorUserId, organizationId);
+    }
+
     @PostMapping("/client-tokens")
     public ResponseEntity<ApiPayloads.ClientTokenResponse> createClientToken(
             @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
@@ -203,5 +242,26 @@ public class PlatformAdminController {
         adminAuthService.requireAdmin(apiKey);
         platformService.authorizeClientTokenCreation(actorUserId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(clientTokenService.create(request));
+    }
+
+    @PostMapping("/client-tokens/{tokenId}/rotate")
+    public ApiPayloads.ClientTokenResponse rotateClientToken(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @RequestHeader(value = ACTOR_HEADER, required = false) Long actorUserId,
+            @PathVariable Long tokenId,
+            @Valid @RequestBody ApiPayloads.RotateClientTokenRequest request) {
+        adminAuthService.requireAdmin(apiKey);
+        platformService.authorizeClientTokenLifecycle(actorUserId, tokenId);
+        return clientTokenService.rotate(tokenId, request);
+    }
+
+    @PostMapping("/client-tokens/{tokenId}/revoke")
+    public ApiPayloads.ClientTokenResponse revokeClientToken(
+            @RequestHeader(value = ADMIN_KEY_HEADER, required = false) String apiKey,
+            @RequestHeader(value = ACTOR_HEADER, required = false) Long actorUserId,
+            @PathVariable Long tokenId) {
+        adminAuthService.requireAdmin(apiKey);
+        platformService.authorizeClientTokenLifecycle(actorUserId, tokenId);
+        return clientTokenService.revoke(tokenId);
     }
 }

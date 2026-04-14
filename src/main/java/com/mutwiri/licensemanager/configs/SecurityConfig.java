@@ -35,7 +35,7 @@ public class SecurityConfig {
                 // Authorization
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/", "/login", "/register", "/error",
-                                "/organizations", "/api/licenses/validate", "/api/v1/**", "/css/**",
+                                "/organizations", "/api/licenses/validate", "/api/v1/**", "/actuator/health/**", "/css/**",
                                 "/js/**", "/images/**")
                         .permitAll() // Public access
                         .anyRequest().authenticated() // Secure everything else

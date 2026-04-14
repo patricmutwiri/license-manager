@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: license-manager-postgres-backup
+  namespace: license-manager
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              envFrom:
+                - secretRef:
+                    name: license-manager-secrets
+              env:
+                - name: BACKUP_FILE
+                  value: "/backups/license-manager-$(date +%Y%m%d%H%M%S).dump"
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  mkdir -p /backups
+                  pg_dump --format=custom --no-owner --no-privileges --file="$BACKUP_FILE" "$SPRING_DATASOURCE_URL"
+                  ls -lh "$BACKUP_FILE"
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: license-manager-backups
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: license-manager-backups
+  namespace: license-manager
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi

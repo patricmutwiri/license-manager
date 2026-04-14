@@ -19,5 +19,6 @@ public enum Permission {
     LICENSE_UPDATE,
     MACHINE_READ,
     AUDIT_READ,
-    CLIENT_TOKEN_MANAGE
+    CLIENT_TOKEN_MANAGE,
+    BILLING_MANAGE
 }

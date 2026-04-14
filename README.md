@@ -14,9 +14,11 @@ The platform now supports Keygen-like concepts: products, policies, licenses, ma
 - Ed25519 signed offline license artifacts with TTL and local public-key verification.
 - Feature entitlement attachment at policy level.
 - Audit trail for products, policies, licenses, machines, heartbeat misses, and offline checkouts.
-- OAuth2-backed Thymeleaf dashboard plus an admin console for platform inventory.
+- OAuth2-backed Thymeleaf dashboard plus an operations console for accounts, products, lifecycle, machines, runtime access, billing, and audit activity.
 - API-first admin/runtime flows with JSON responses.
-- Flyway-managed schema, runtime client API tokens, rate limiting, and service coverage enforcement.
+- Flyway-managed schema, scoped runtime client tokens, Redis-capable rate limiting, scheduled operations jobs, Prometheus metrics, and service coverage enforcement.
+- Billing-ready plan/subscription domain with provider integration points.
+- OpenAPI governance artifact, shell CLI, and Java runtime SDK starter.
 
 ## Requirements
 
@@ -59,6 +61,11 @@ export LICENSE_RATE_LIMIT_REDIS_URL='<redis-or-rediss-url>'
 export LICENSE_RATE_LIMIT_REDIS_KEY_PREFIX='license-manager:rate-limit'
 export LICENSE_RATE_LIMIT_RUNTIME_PER_MINUTE='120'
 export LICENSE_RATE_LIMIT_FAIL_OPEN='false'
+export LICENSE_JOBS_ENABLED='true'
+export LICENSE_JOBS_EXPIRY_SWEEP_DELAY_MS='300000'
+export LICENSE_JOBS_HEARTBEAT_CLEANUP_DELAY_MS='300000'
+export LICENSE_JOBS_STALE_MACHINE_CLEANUP_DELAY_MS='3600000'
+export LICENSE_JOBS_SUBSCRIPTION_EXPIRY_DELAY_MS='3600000'
 export PORT='8080'
 ```
 
@@ -78,7 +85,7 @@ Open the dashboard at `http://localhost:8080`.
 
 Seed data is created when `LICENSE_SEED_ENABLED=true`: a demo user, organization, product, entitlements, floating policy, and license.
 
-The platform inventory console is available at `http://localhost:8080/admin` for authenticated users whose stored role is `ADMIN`. It shows organizations, team memberships, products, policies, licenses, machines, and audit events; write workflows are exposed through the admin REST API.
+The operations console is available at `http://localhost:8080/admin` for authenticated users whose stored role is `ADMIN`. It shows dashboard health signals, account/customer views, products and policies, license lifecycle state, machine heartbeat state, runtime tokens, billing plans/subscriptions, and audit activity. Write workflows remain API-first for explicit RBAC and automation.
 
 ## Admin API
 
@@ -99,8 +106,8 @@ When `X-Actor-User-Id` is present, global `ADMIN` users can administer the platf
 | Organization Role | Permissions |
 | --- | --- |
 | `OWNER` | All organization permissions |
-| `ADMIN` | Organization, membership, product, policy, license, machine, audit, and client-token management |
-| `BILLING` | Organization read, license read, audit read |
+| `ADMIN` | Organization, membership, product, policy, license, machine, audit, billing, and client-token management |
+| `BILLING` | Organization read, license read, audit read, billing management |
 | `DEVELOPER` | Organization read, license read, machine read, client-token management |
 | `SUPPORT` | Organization read, license read/update, machine read, audit read |
 | `VIEWER` | Organization read, license read, machine read, audit read |
@@ -204,16 +211,50 @@ Create a runtime client token:
 curl -X POST http://localhost:8080/api/v1/admin/client-tokens \
   -H "Content-Type: application/json" \
   -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
-  -d '{"name":"desktop-runtime","productId":1}'
+  -d '{"name":"desktop-runtime","productId":1,"scopes":["LICENSE_VALIDATE","MACHINE_ACTIVATE","MACHINE_HEARTBEAT"]}'
+```
+
+Rotate or revoke a runtime client token:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/client-tokens/1/rotate \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
+  -d '{"scopes":["LICENSE_VALIDATE","MACHINE_HEARTBEAT"]}'
+
+curl -X POST http://localhost:8080/api/v1/admin/client-tokens/1/revoke \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY"
+```
+
+Create billing plan and subscription records:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/billing/plans \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
+  -d '{"code":"team-monthly","name":"Team Monthly","policyId":1,"amountCents":4900,"currency":"USD","billingInterval":"MONTHLY","provider":"INTERNAL"}'
+
+curl -X POST http://localhost:8080/api/v1/admin/billing/subscriptions \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Api-Key: $LICENSE_ADMIN_API_KEY" \
+  -d '{"organizationId":1,"planId":1,"status":"ACTIVE","provider":"INTERNAL"}'
 ```
 
 ## Runtime API
 
-All runtime endpoints require:
+Runtime endpoints accept either legacy client-token auth:
 
 ```http
 X-License-Client-Key: <client token returned once by /api/v1/admin/client-tokens>
 ```
+
+or OAuth2-style bearer auth:
+
+```http
+Authorization: Bearer <client token returned once by /api/v1/admin/client-tokens>
+```
+
+Each endpoint enforces the relevant token scope, such as `LICENSE_VALIDATE`, `MACHINE_ACTIVATE`, `MACHINE_HEARTBEAT`, `MACHINE_DEACTIVATE`, `OFFLINE_CHECKOUT`, `OFFLINE_VERIFY`, or `OFFLINE_PUBLIC_KEY`.
 
 Validate a license:
 
@@ -284,12 +325,23 @@ curl -X GET http://localhost:8080/api/v1/runtime/offline/public-key \
 
 ## Architecture
 
-- Controllers: browser dashboard, admin console, admin API, runtime API.
-- Services: license generation compatibility service, platform licensing service, audit service, crypto service, admin auth service, client token service, rate-limit service, email service.
-- Data: Flyway migrations plus JPA entities for users, organizations, products, policies, entitlements, licenses, machines, offline artifacts, client API tokens, and audit events.
+- Controllers: browser dashboard, operations console, admin API, runtime API.
+- Services: license generation compatibility service, platform licensing service, billing service, scheduler, audit service, crypto service, admin auth service, client token service, rate-limit service, email service.
+- Data: Flyway migrations plus JPA entities for users, organizations, memberships, products, policies, entitlements, licenses, machines, offline artifacts, scoped client API tokens, billing plans, billing subscriptions, and audit events.
 - Validation flow: request -> license lookup -> status/expiry/product/policy/version checks -> optional fingerprint machine check -> entitlement and heartbeat response.
 - Admin authorization flow: admin API key -> optional actor lookup -> global user role or organization membership permission check -> service action.
 - Offline flow: active license plus active machine -> Ed25519 signed artifact -> local verification with public key, signature, and TTL.
+- Scheduler flow: fixed-delay jobs expire licenses, mark missed heartbeats, deactivate stale missed machines, and expire subscriptions with audit events.
+
+## Operations
+
+- Health: `GET /actuator/health`, `GET /actuator/health/liveness`, `GET /actuator/health/readiness`
+- Metrics: `GET /actuator/prometheus`
+- OpenAPI: `docs/openapi.yaml`
+- CLI: `cli/license-manager.sh`
+- Java SDK starter: `sdk/java/LicenseManagerClient.java`
+- Kubernetes manifests: `deploy/kubernetes/`
+- Backup/restore helpers: `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`
 
 ## Tests
 
@@ -297,7 +349,7 @@ curl -X GET http://localhost:8080/api/v1/runtime/offline/public-key \
 mvn clean test
 ```
 
-Current tests cover legacy license generation, platform issuance/validation, activation/deactivation behavior, floating seat enforcement, heartbeat reclamation, offline artifact verification, version policy bounds, organization RBAC enforcement, admin API key checks, Flyway schema migration, Ed25519 signing, and runtime rate limiting. JaCoCo enforces service package coverage during `mvn clean test`.
+Current tests cover legacy license generation, platform issuance/validation, activation/deactivation behavior, floating seat enforcement, heartbeat reclamation, offline artifact verification, version policy bounds, organization RBAC enforcement, admin API key checks, scoped client-token rotation/revocation, billing service behavior, scheduled lifecycle sweeps, admin console rendering, Flyway schema migration, Ed25519 signing, and runtime rate limiting. JaCoCo enforces service package coverage during `mvn clean test`.
 
 Redis integration is opt-in:
 
@@ -309,5 +361,7 @@ mvn -Dtest=RedisRateLimitServiceTests test
 ## Trade-offs
 
 - Admin API authorization still supports an API key header for automation. Send `X-Actor-User-Id` when requests need to be evaluated against the full user/org RBAC matrix.
+- Scoped opaque runtime tokens provide OAuth2-compatible semantics but do not make this application a full authorization server.
 - Runtime client tokens are stored hashed and returned only once. Rotate them if the raw token is lost.
 - Redis rate limiting is production-supported through `LICENSE_RATE_LIMIT_REDIS_URL`; standard Redis uses Lettuce and Upstash URLs use Upstash's authenticated HTTPS command API. The in-memory limiter remains a local fallback when Redis is not configured.
+- Billing is provider-neutral today. Stripe/Paddle/etc. should be integrated as adapters that update the internal subscription model through signed webhooks and idempotency keys.

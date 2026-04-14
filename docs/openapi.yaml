@@ -1,0 +1,253 @@
+openapi: 3.1.0
+info:
+  title: License Manager API
+  version: 1.0.0
+  description: Enterprise licensing API for admin, runtime validation, activation, offline artifacts, and billing.
+servers:
+  - url: http://localhost:8080
+security:
+  - AdminApiKey: []
+components:
+  securitySchemes:
+    AdminApiKey:
+      type: apiKey
+      in: header
+      name: X-Admin-Api-Key
+    RuntimeClientToken:
+      type: apiKey
+      in: header
+      name: X-License-Client-Key
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message, timestamp]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        timestamp: { type: integer, format: int64 }
+    LicenseLifecycleResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        key: { type: string }
+        status: { type: string, enum: [ACTIVE, INACTIVE, SUSPENDED, EXPIRED, REVOKED] }
+        productCode: { type: string }
+        policyCode: { type: string }
+        expiry: { type: string, format: date-time }
+        customerName: { type: string }
+        customerEmail: { type: string }
+    ValidationRequest:
+      type: object
+      required: [key]
+      properties:
+        key: { type: string }
+        productCode: { type: string }
+        policyCode: { type: string }
+        fingerprint: { type: string }
+        version: { type: string }
+    ValidationResponse:
+      type: object
+      properties:
+        valid: { type: boolean }
+        code: { type: string }
+        detail: { type: string }
+        licenseKey: { type: string }
+        entitlements:
+          type: array
+          items: { type: string }
+        expiresAt: { type: string, format: date-time }
+        nextHeartbeatDueAt: { type: string, format: date-time }
+paths:
+  /api/v1/admin/users:
+    get:
+      summary: List users
+      responses:
+        '200': { description: Users }
+    post:
+      summary: Create user/customer
+      responses:
+        '201': { description: User created }
+  /api/v1/admin/organizations:
+    get:
+      summary: List organizations
+      responses:
+        '200': { description: Organizations }
+    post:
+      summary: Create organization
+      responses:
+        '201': { description: Organization created }
+  /api/v1/admin/organizations/{organizationId}/memberships:
+    get:
+      summary: List organization memberships
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Memberships }
+    post:
+      summary: Create organization membership
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '201': { description: Membership created }
+  /api/v1/admin/products:
+    get:
+      summary: List products
+      responses:
+        '200': { description: Products }
+    post:
+      summary: Create product
+      responses:
+        '201': { description: Product created }
+  /api/v1/admin/policies:
+    get:
+      summary: List policies
+      responses:
+        '200': { description: Policies }
+    post:
+      summary: Create policy
+      responses:
+        '201': { description: Policy created }
+  /api/v1/admin/licenses:
+    get:
+      summary: List licenses
+      responses:
+        '200':
+          description: Licenses
+    post:
+      summary: Issue license
+      responses:
+        '201':
+          description: License issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseLifecycleResponse'
+  /api/v1/admin/licenses/{licenseId}/status:
+    patch:
+      summary: Change license lifecycle status
+      parameters:
+        - name: licenseId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Status changed }
+  /api/v1/admin/client-tokens:
+    post:
+      summary: Create scoped runtime client token
+      responses:
+        '201': { description: Token created }
+  /api/v1/admin/client-tokens/{tokenId}/rotate:
+    post:
+      summary: Rotate runtime client token
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Token rotated }
+  /api/v1/admin/client-tokens/{tokenId}/revoke:
+    post:
+      summary: Revoke runtime client token
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Token revoked }
+  /api/v1/admin/billing/plans:
+    get:
+      summary: List billing plans
+      responses:
+        '200': { description: Billing plans }
+    post:
+      summary: Create billing plan
+      responses:
+        '201': { description: Billing plan created }
+  /api/v1/admin/billing/subscriptions:
+    post:
+      summary: Create organization billing subscription
+      responses:
+        '201': { description: Subscription created }
+  /api/v1/runtime/licenses/validate:
+    post:
+      summary: Validate a license
+      security:
+        - RuntimeClientToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationRequest'
+      responses:
+        '200':
+          description: Validation decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+  /api/v1/runtime/licenses/{licenseKey}/machines:
+    post:
+      summary: Activate/register a machine
+      security:
+        - RuntimeClientToken: []
+      parameters:
+        - name: licenseKey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201': { description: Machine activated }
+    delete:
+      summary: Deactivate a machine
+      security:
+        - RuntimeClientToken: []
+      parameters:
+        - name: licenseKey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Machine deactivated }
+  /api/v1/runtime/licenses/{licenseKey}/machines/heartbeat:
+    post:
+      summary: Check in an active machine
+      security:
+        - RuntimeClientToken: []
+      parameters:
+        - name: licenseKey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Heartbeat accepted }
+  /api/v1/runtime/offline/checkouts:
+    post:
+      summary: Checkout signed offline license artifact
+      security:
+        - RuntimeClientToken: []
+      responses:
+        '200': { description: Offline artifact }
+  /api/v1/runtime/offline/verify:
+    post:
+      summary: Verify signed offline artifact
+      security:
+        - RuntimeClientToken: []
+      responses:
+        '200': { description: Verification result }
+  /api/v1/runtime/offline/public-key:
+    get:
+      summary: Fetch offline artifact verification public key
+      security:
+        - RuntimeClientToken: []
+      responses:
+        '200': { description: Public key }

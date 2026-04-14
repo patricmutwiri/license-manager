@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 
 <head>
-    <title>Admin Console - License Manager</title>
+    <title>Operations Console - License Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" th:href="@{/css/main.css}">
 </head>
@@ -15,109 +15,261 @@
                 License Manager
             </a>
             <div class="nav-links">
-                <a href="/">Dashboard</a>
+                <a href="#dashboard">Dashboard</a>
+                <a href="#accounts">Accounts</a>
+                <a href="#licenses">Licenses</a>
+                <a href="#security">Security</a>
+                <a href="#audit">Audit</a>
                 <a href="/logout" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Logout</a>
             </div>
         </div>
     </nav>
 
-    <main class="container">
-        <header class="page-header">
-            <h1>Admin Console</h1>
-            <p>Products, policies, licenses, machines, and recent platform events.</p>
+    <main class="container admin-console">
+        <header class="page-header admin-hero" id="dashboard">
+            <div>
+                <p class="eyebrow">Enterprise operations</p>
+                <h1>Licensing Control Center</h1>
+                <p>Operate customers, policies, license lifecycle, machine activations, runtime credentials, billing state, and audit evidence from one console.</p>
+            </div>
+            <div class="admin-actions">
+                <a href="/api/v1/admin/licenses" class="btn btn-primary">Admin API</a>
+                <a href="/actuator/health" class="btn btn-secondary">Health</a>
+            </div>
         </header>
 
-        <section class="grid" style="margin-bottom: 2rem;">
-            <div class="stats-card glass-card">
-                <label>Organizations</label>
-                <div style="font-size: 2rem; font-weight: 700;" th:text="${organizations.size()}">0</div>
-            </div>
-            <div class="stats-card glass-card">
-                <label>Members</label>
-                <div style="font-size: 2rem; font-weight: 700;" th:text="${memberships.size()}">0</div>
-            </div>
-            <div class="stats-card glass-card">
-                <label>Products</label>
-                <div style="font-size: 2rem; font-weight: 700;" th:text="${products.size()}">0</div>
-            </div>
-            <div class="stats-card glass-card">
-                <label>Policies</label>
-                <div style="font-size: 2rem; font-weight: 700;" th:text="${policies.size()}">0</div>
-            </div>
-            <div class="stats-card glass-card">
-                <label>Licenses</label>
-                <div style="font-size: 2rem; font-weight: 700;" th:text="${licenses.size()}">0</div>
-            </div>
-            <div class="stats-card glass-card">
+        <section class="ops-toolbar">
+            <input id="opsSearch" type="search" placeholder="Search accounts, licenses, machines, products, tokens, or events">
+            <span th:text="${auditEvents.size()} + ' recent audit events'">0 recent audit events</span>
+        </section>
+
+        <section class="ops-metrics">
+            <article class="metric-tile">
+                <label>Customers</label>
+                <strong th:text="${users.size()}">0</strong>
+                <span th:text="${organizations.size()} + ' organizations'">0 organizations</span>
+            </article>
+            <article class="metric-tile">
+                <label>Active Licenses</label>
+                <strong th:text="${activeLicenseCount}">0</strong>
+                <span th:text="${riskLicenseCount} + ' suspended, expired, or revoked'">0 at risk</span>
+            </article>
+            <article class="metric-tile">
                 <label>Machines</label>
-                <div style="font-size: 2rem; font-weight: 700;" th:text="${machines.size()}">0</div>
+                <strong th:text="${activeMachineCount}">0</strong>
+                <span th:text="${missedHeartbeatCount} + ' missed heartbeat'">0 missed heartbeat</span>
+            </article>
+            <article class="metric-tile">
+                <label>Runtime Tokens</label>
+                <strong th:text="${clientTokens.size()}">0</strong>
+                <span>Scoped, rotated, revoked</span>
+            </article>
+            <article class="metric-tile">
+                <label>Billing Plans</label>
+                <strong th:text="${billingPlans.size()}">0</strong>
+                <span th:text="${billingSubscriptions.size()} + ' subscriptions'">0 subscriptions</span>
+            </article>
+        </section>
+
+        <section class="ops-section" id="accounts">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Customers and tenants</p>
+                    <h2>Accounts</h2>
+                </div>
+                <a href="/api/v1/admin/organizations" class="text-link">Open organizations API</a>
+            </div>
+            <div class="ops-table">
+                <div class="ops-row ops-head">
+                    <span>Organization</span>
+                    <span>Contact</span>
+                    <span>Members</span>
+                    <span>Domain</span>
+                </div>
+                <div th:each="organization : ${organizations}" class="ops-row searchable"
+                        th:attr="data-search=${organization.name + ' ' + organization.email + ' ' + organization.domain}">
+                    <strong th:text="${organization.name}">Organization</strong>
+                    <span th:text="${organization.email}">email</span>
+                    <span th:text="${organizationMemberCounts.get(organization.id) ?: 0}">0</span>
+                    <code th:text="${organization.domain}">domain</code>
+                </div>
             </div>
         </section>
 
-        <section class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Organizations</h2>
-            <div th:each="organization : ${organizations}" class="license-item">
-                <strong th:text="${organization.domain}">domain</strong>
-                <span th:text="${organization.name}">Organization</span>
-                <span th:text="${organization.email}">email</span>
+        <section class="ops-section">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Product catalog</p>
+                    <h2>Products, Policies, Entitlements</h2>
+                </div>
+                <a href="/api/v1/admin/products" class="text-link">Open products API</a>
+            </div>
+            <div class="ops-split">
+                <div class="ops-table">
+                    <div class="ops-row ops-head">
+                        <span>Product</span>
+                        <span>Owner</span>
+                        <span>Description</span>
+                    </div>
+                    <div th:each="product : ${products}" class="ops-row searchable"
+                            th:attr="data-search=${product.code + ' ' + product.name + ' ' + (product.organization != null ? product.organization.domain : '')}">
+                        <strong th:text="${product.code}">code</strong>
+                        <span th:text="${product.organization != null ? product.organization.name : 'Global'}">Owner</span>
+                        <span th:text="${product.description}">Description</span>
+                    </div>
+                </div>
+                <div class="ops-table">
+                    <div class="ops-row ops-head">
+                        <span>Policy</span>
+                        <span>Model</span>
+                        <span>Limits</span>
+                    </div>
+                    <div th:each="policy : ${policies}" class="ops-row searchable"
+                            th:attr="data-search=${policy.code + ' ' + policy.name + ' ' + policy.licensingModel}">
+                        <strong th:text="${policy.code}">policy</strong>
+                        <span class="badge badge-neutral" th:text="${policy.licensingModel}">FLOATING</span>
+                        <span th:text="'Machines ' + ${policy.maxMachines} + ' / Seats ' + ${policy.maxSeats}">limits</span>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Team Memberships</h2>
-            <div th:each="membership : ${memberships}" class="license-item">
-                <strong th:text="${membership.organization.domain}">organization</strong>
-                <span th:text="${membership.user.email}">user</span>
-                <span th:text="${membership.role}">OWNER</span>
+        <section class="ops-section" id="licenses">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Lifecycle operations</p>
+                    <h2>Licenses and Machines</h2>
+                </div>
+                <a href="/api/v1/admin/licenses" class="text-link">Open licenses API</a>
+            </div>
+            <div class="ops-table">
+                <div class="ops-row ops-head ops-license-row">
+                    <span>License</span>
+                    <span>Status</span>
+                    <span>Customer</span>
+                    <span>Product</span>
+                    <span>Expiry</span>
+                </div>
+                <div th:each="license : ${licenses}" class="ops-row ops-license-row searchable"
+                        th:attr="data-search=${license.key + ' ' + license.status + ' ' + license.customerEmail + ' ' + license.customerName}">
+                    <code class="license-key" th:text="${license.key}">license</code>
+                    <span class="badge"
+                            th:classappend="${license.status.name() == 'ACTIVE'} ? ' badge-success' : ' badge-danger'"
+                            th:text="${license.status}">ACTIVE</span>
+                    <span th:text="${license.customerEmail}">customer</span>
+                    <span th:text="${license.product != null ? license.product.code : 'No product'}">product</span>
+                    <span th:text="${license.expiry != null ? license.expiry : 'No expiry'}">expiry</span>
+                </div>
+            </div>
+
+            <div class="ops-table compact-table">
+                <div class="ops-row ops-head">
+                    <span>Fingerprint</span>
+                    <span>Status</span>
+                    <span>Last heartbeat</span>
+                    <span>Last seen</span>
+                </div>
+                <div th:each="machine : ${machines}" class="ops-row searchable"
+                        th:attr="data-search=${machine.fingerprintHash + ' ' + machine.status}">
+                    <code th:text="${machine.fingerprintHash}">fingerprint</code>
+                    <span class="badge"
+                            th:classappend="${machine.status.name() == 'ACTIVE'} ? ' badge-success' : ' badge-danger'"
+                            th:text="${machine.status}">ACTIVE</span>
+                    <span th:text="${machine.lastHeartbeatAt != null ? machine.lastHeartbeatAt : 'Never'}">heartbeat</span>
+                    <span th:text="${machine.lastSeenAt != null ? machine.lastSeenAt : 'Never'}">seen</span>
+                </div>
             </div>
         </section>
 
-        <section class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Products</h2>
-            <div th:each="product : ${products}" class="license-item">
-                <strong th:text="${product.code}">code</strong>
-                <span th:text="${product.name}">Product</span>
-                <span th:text="${product.organization != null ? product.organization.domain : 'Global'}">scope</span>
+        <section class="ops-section" id="security">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Security and billing</p>
+                    <h2>Runtime Access, Plans, Subscriptions</h2>
+                </div>
+                <a href="/api/v1/admin/client-tokens" class="text-link">Token lifecycle API</a>
+            </div>
+            <div class="ops-split">
+                <div class="ops-table">
+                    <div class="ops-row ops-head">
+                        <span>Token</span>
+                        <span>Scopes</span>
+                        <span>Last used</span>
+                    </div>
+                    <div th:each="token : ${clientTokens}" class="ops-row searchable"
+                            th:attr="data-search=${token.name + ' ' + token.tokenPrefix + ' ' + token.scopes}">
+                        <strong th:text="${token.name}">token</strong>
+                        <span th:text="${token.scopes}">scopes</span>
+                        <span th:text="${token.lastUsedAt != null ? token.lastUsedAt : 'Never'}">last used</span>
+                    </div>
+                </div>
+                <div class="ops-table">
+                    <div class="ops-row ops-head">
+                        <span>Plan</span>
+                        <span>Price</span>
+                        <span>Provider</span>
+                    </div>
+                    <div th:each="plan : ${billingPlans}" class="ops-row searchable"
+                            th:attr="data-search=${plan.code + ' ' + plan.name + ' ' + plan.provider}">
+                        <strong th:text="${plan.code}">plan</strong>
+                        <span th:text="${plan.currency + ' ' + (plan.amountCents / 100.0) + ' / ' + plan.billingInterval}">price</span>
+                        <span th:text="${plan.provider}">provider</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ops-table compact-table">
+                <div class="ops-row ops-head">
+                    <span>Subscription</span>
+                    <span>Organization</span>
+                    <span>Status</span>
+                    <span>Period end</span>
+                </div>
+                <div th:each="subscription : ${billingSubscriptions}" class="ops-row searchable"
+                        th:attr="data-search=${subscription.organization.name + ' ' + subscription.plan.code + ' ' + subscription.status}">
+                    <strong th:text="${subscription.plan.code}">plan</strong>
+                    <span th:text="${subscription.organization.name}">organization</span>
+                    <span class="badge badge-neutral" th:text="${subscription.status}">ACTIVE</span>
+                    <span th:text="${subscription.currentPeriodEnd != null ? subscription.currentPeriodEnd : 'Open'}">period</span>
+                </div>
             </div>
         </section>
 
-        <section class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Policies</h2>
-            <div th:each="policy : ${policies}" class="license-item">
-                <strong th:text="${policy.code}">policy</strong>
-                <span th:text="${policy.licensingModel}">FLOATING</span>
-                <span th:text="'Seats: ' + ${policy.maxSeats}">Seats</span>
+        <section class="ops-section" id="audit">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Evidence trail</p>
+                    <h2>Recent Audit Activity</h2>
+                </div>
+                <a href="/api/v1/admin/audit-events" class="text-link">Open audit API</a>
             </div>
-        </section>
-
-        <section class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Licenses</h2>
-            <div th:each="license : ${licenses}" class="license-item">
-                <code class="license-key" th:text="${license.key}">lic</code>
-                <span th:text="${license.status}">ACTIVE</span>
-                <span th:text="${license.customerEmail}">customer</span>
-                <span th:text="${license.organization != null ? license.organization.domain : 'No organization'}">organization</span>
-            </div>
-        </section>
-
-        <section class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Machines</h2>
-            <div th:each="machine : ${machines}" class="license-item">
-                <strong th:text="${machine.fingerprintHash}">fingerprint</strong>
-                <span th:text="${machine.status}">ACTIVE</span>
-                <span th:text="${machine.lastHeartbeatAt}">heartbeat</span>
-            </div>
-        </section>
-
-        <section class="glass-card">
-            <h2>Recent Audit Events</h2>
-            <div th:each="event : ${auditEvents}" class="license-item">
-                <strong th:text="${event.eventType}">event</strong>
-                <span th:text="${event.description}">description</span>
-                <span th:text="${event.createdAt}">created</span>
+            <div class="audit-feed">
+                <article th:each="event : ${auditEvents}" class="audit-item searchable"
+                        th:attr="data-search=${event.eventType + ' ' + event.actor + ' ' + event.resourceType + ' ' + event.description}">
+                    <div>
+                        <strong th:text="${event.eventType}">event</strong>
+                        <p th:text="${event.description}">description</p>
+                    </div>
+                    <div>
+                        <span th:text="${event.resourceType + ' #' + event.resourceId}">resource</span>
+                        <time th:text="${event.createdAt}">created</time>
+                    </div>
+                </article>
             </div>
         </section>
     </main>
+
+    <script>
+        const searchInput = document.getElementById('opsSearch');
+        const rows = Array.from(document.querySelectorAll('.searchable'));
+
+        searchInput?.addEventListener('input', (event) => {
+            const query = event.target.value.trim().toLowerCase();
+            rows.forEach((row) => {
+                const haystack = (row.dataset.search || row.textContent || '').toLowerCase();
+                row.hidden = query.length > 0 && !haystack.includes(query);
+            });
+        });
+    </script>
 </body>
 
 </html>
