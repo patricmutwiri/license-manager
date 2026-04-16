@@ -337,7 +337,6 @@ curl -X GET http://localhost:8080/api/v1/runtime/offline/public-key \
 
 - Health: `GET /actuator/health`, `GET /actuator/health/liveness`, `GET /actuator/health/readiness`
 - Metrics: `GET /actuator/prometheus`
-- OpenAPI: `docs/openapi.yaml`
 - CLI: `cli/license-manager.sh`
 - Java SDK starter: `sdk/java/LicenseManagerClient.java`
 - Kubernetes manifests: `deploy/kubernetes/`
