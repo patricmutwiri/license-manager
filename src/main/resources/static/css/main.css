@@ -501,6 +501,55 @@ input:focus {
     text-align: right;
 }
 
+.ops-form-grid,
+.ops-workflows {
+    display: grid;
+    gap: 1rem;
+}
+
+.ops-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 1rem;
+}
+
+.ops-workflows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ops-form {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.ops-form h3 {
+    font-size: 1rem;
+}
+
+select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-sm);
+    padding: 0.8rem 1rem;
+    color: white;
+    font-family: inherit;
+}
+
+.workflow-result {
+    margin-top: 1rem;
+    white-space: pre-wrap;
+    overflow: auto;
+    padding: 1rem;
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--secondary);
+}
+
 /* Login Page Specific */
 .login-wrap {
     min-height: 100vh;
@@ -632,7 +681,9 @@ footer {
     }
 
     .admin-actions,
-    .ops-split {
+    .ops-split,
+    .ops-form-grid,
+    .ops-workflows {
         display: grid;
         grid-template-columns: 1fr;
     }

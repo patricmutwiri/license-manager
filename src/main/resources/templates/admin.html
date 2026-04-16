@@ -43,6 +43,92 @@
             <span th:text="${auditEvents.size()} + ' recent audit events'">0 recent audit events</span>
         </section>
 
+        <section class="ops-section" id="workflows">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Operator workflows</p>
+                    <h2>Command Center</h2>
+                </div>
+                <span class="text-link">Uses the admin REST API</span>
+            </div>
+
+            <div class="ops-form-grid">
+                <label>
+                    Admin API Key
+                    <input id="adminApiKey" type="password" autocomplete="off" placeholder="Required for write actions">
+                </label>
+                <label>
+                    Actor User ID
+                    <input id="actorUserId" type="number" min="1" placeholder="Optional RBAC actor">
+                </label>
+            </div>
+
+            <div class="ops-workflows">
+                <form class="ops-form" data-method="POST" data-path="/api/v1/admin/products">
+                    <h3>Create Product</h3>
+                    <input name="organizationId" type="number" min="1" placeholder="Organization ID" required>
+                    <input name="code" placeholder="Product code" required>
+                    <input name="name" placeholder="Product name" required>
+                    <button class="btn btn-primary" type="submit">Create</button>
+                </form>
+
+                <form class="ops-form" data-method="POST" data-path="/api/v1/admin/licenses">
+                    <h3>Issue License</h3>
+                    <input name="userId" type="number" min="1" placeholder="User ID" required>
+                    <input name="organizationId" type="number" min="1" placeholder="Organization ID" required>
+                    <input name="policyId" type="number" min="1" placeholder="Policy ID" required>
+                    <input name="customerName" placeholder="Customer name" required>
+                    <input name="customerEmail" type="email" placeholder="Customer email" required>
+                    <button class="btn btn-primary" type="submit">Issue</button>
+                </form>
+
+                <form class="ops-form" data-method="PATCH" data-path-template="/api/v1/admin/licenses/{licenseId}/status">
+                    <h3>Change License Status</h3>
+                    <input name="licenseId" type="number" min="1" placeholder="License ID" required>
+                    <select name="status" required>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="SUSPENDED">SUSPENDED</option>
+                        <option value="EXPIRED">EXPIRED</option>
+                        <option value="REVOKED">REVOKED</option>
+                    </select>
+                    <button class="btn btn-primary" type="submit">Apply</button>
+                </form>
+
+                <form class="ops-form" data-method="POST" data-path="/api/v1/admin/client-tokens">
+                    <h3>Create Runtime Token</h3>
+                    <input name="name" placeholder="Token name" required>
+                    <input name="productId" type="number" min="1" placeholder="Product ID">
+                    <input name="scopes" placeholder="LICENSE_VALIDATE,MACHINE_HEARTBEAT" required>
+                    <button class="btn btn-primary" type="submit">Create</button>
+                </form>
+
+                <form class="ops-form" data-method="POST" data-path-template="/api/v1/admin/client-tokens/{tokenId}/rotate">
+                    <h3>Rotate Runtime Token</h3>
+                    <input name="tokenId" type="number" min="1" placeholder="Token ID" required>
+                    <input name="scopes" placeholder="LICENSE_VALIDATE,MACHINE_HEARTBEAT" required>
+                    <button class="btn btn-primary" type="submit">Rotate</button>
+                </form>
+
+                <form class="ops-form" data-method="POST" data-path="/api/v1/admin/billing/plans">
+                    <h3>Create Billing Plan</h3>
+                    <input name="code" placeholder="Plan code" required>
+                    <input name="name" placeholder="Plan name" required>
+                    <input name="policyId" type="number" min="1" placeholder="Policy ID" required>
+                    <input name="amountCents" type="number" min="0" placeholder="Amount cents" required>
+                    <input name="currency" maxlength="3" placeholder="USD" required>
+                    <select name="billingInterval" required>
+                        <option value="MONTHLY">MONTHLY</option>
+                        <option value="YEARLY">YEARLY</option>
+                        <option value="ONE_TIME">ONE_TIME</option>
+                    </select>
+                    <button class="btn btn-primary" type="submit">Create</button>
+                </form>
+            </div>
+
+            <pre id="workflowResult" class="workflow-result" hidden></pre>
+        </section>
+
         <section class="ops-metrics">
             <article class="metric-tile">
                 <label>Customers</label>
@@ -269,6 +355,79 @@
                 row.hidden = query.length > 0 && !haystack.includes(query);
             });
         });
+
+        const result = document.getElementById('workflowResult');
+        const adminKey = document.getElementById('adminApiKey');
+        const actorUserId = document.getElementById('actorUserId');
+
+        document.querySelectorAll('.ops-form').forEach((form) => {
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const key = adminKey.value.trim();
+                if (!key) {
+                    showResult('Admin API key is required.');
+                    return;
+                }
+
+                const data = Object.fromEntries(new FormData(form).entries());
+                const path = (form.dataset.pathTemplate || form.dataset.path).replace(/\{([^}]+)}/g, (_, field) => {
+                    const value = encodeURIComponent(data[field]);
+                    delete data[field];
+                    return value;
+                });
+                const body = normalizeWorkflowBody(data);
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-Admin-Api-Key': key,
+                };
+                if (actorUserId.value.trim()) {
+                    headers['X-Actor-User-Id'] = actorUserId.value.trim();
+                }
+
+                try {
+                    const response = await fetch(path, {
+                        method: form.dataset.method,
+                        headers,
+                        body: JSON.stringify(body),
+                    });
+                    const text = await response.text();
+                    showResult(`${response.status} ${response.statusText}\n${formatJson(text)}`);
+                } catch (error) {
+                    showResult(error.message);
+                }
+            });
+        });
+
+        function normalizeWorkflowBody(data) {
+            const normalized = {};
+            Object.entries(data).forEach(([key, value]) => {
+                if (value === '') {
+                    return;
+                }
+                if (key === 'scopes') {
+                    normalized[key] = value.split(',').map((scope) => scope.trim()).filter(Boolean);
+                } else if (/Id$|amountCents|trialDays|max/.test(key)) {
+                    normalized[key] = Number(value);
+                } else {
+                    normalized[key] = value;
+                }
+            });
+            return normalized;
+        }
+
+        function showResult(text) {
+            result.hidden = false;
+            result.textContent = text;
+        }
+
+        function formatJson(text) {
+            try {
+                return JSON.stringify(JSON.parse(text), null, 2);
+            } catch {
+                return text;
+            }
+        }
     </script>
 </body>
 
