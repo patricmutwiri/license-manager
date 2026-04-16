@@ -21,6 +21,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -31,21 +32,27 @@ public class LicenseOperationsScheduler {
     private final MachineRepository machineRepository;
     private final BillingSubscriptionRepository subscriptionRepository;
     private final AuditService auditService;
+    private final SchedulerLockService lockService;
     private final boolean enabled;
     private final int staleMachineDays;
+    private final Duration lockTtl;
 
     public LicenseOperationsScheduler(LicenseRepository licenseRepository,
             MachineRepository machineRepository,
             BillingSubscriptionRepository subscriptionRepository,
             AuditService auditService,
+            SchedulerLockService lockService,
             @Value("${license.jobs.enabled:true}") boolean enabled,
-            @Value("${license.jobs.stale-machine-days:30}") int staleMachineDays) {
+            @Value("${license.jobs.stale-machine-days:30}") int staleMachineDays,
+            @Value("${license.jobs.lock-ttl-seconds:240}") long lockTtlSeconds) {
         this.licenseRepository = licenseRepository;
         this.machineRepository = machineRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.auditService = auditService;
+        this.lockService = lockService;
         this.enabled = enabled;
         this.staleMachineDays = staleMachineDays;
+        this.lockTtl = Duration.ofSeconds(Math.max(30, lockTtlSeconds));
     }
 
     @Scheduled(fixedDelayString = "${license.jobs.expiry-sweep-delay-ms:300000}")
@@ -54,6 +61,10 @@ public class LicenseOperationsScheduler {
         if (!enabled) {
             return;
         }
+        lockService.runWithLock("license-expiry-sweep", lockTtl, this::expireLicensesLocked);
+    }
+
+    int expireLicensesLocked() {
         int expired = 0;
         for (License license : licenseRepository.findByStatusAndActiveTrueAndExpiryBefore(
                 LicenseStatus.ACTIVE, LocalDateTime.now())) {
@@ -66,6 +77,7 @@ public class LicenseOperationsScheduler {
         if (expired > 0) {
             log.info("Expired {} licenses during scheduled sweep", expired);
         }
+        return expired;
     }
 
     @Scheduled(fixedDelayString = "${license.jobs.heartbeat-cleanup-delay-ms:300000}")
@@ -74,6 +86,10 @@ public class LicenseOperationsScheduler {
         if (!enabled) {
             return;
         }
+        lockService.runWithLock("heartbeat-cleanup", lockTtl, this::markMissedHeartbeatsLocked);
+    }
+
+    int markMissedHeartbeatsLocked() {
         int marked = 0;
         LocalDateTime now = LocalDateTime.now();
         for (Machine machine : machineRepository.findByStatusAndLastHeartbeatAtBefore(MachineStatus.ACTIVE, now)) {
@@ -93,6 +109,7 @@ public class LicenseOperationsScheduler {
         if (marked > 0) {
             log.info("Marked {} machines as heartbeat missed", marked);
         }
+        return marked;
     }
 
     @Scheduled(fixedDelayString = "${license.jobs.stale-machine-cleanup-delay-ms:3600000}")
@@ -101,6 +118,10 @@ public class LicenseOperationsScheduler {
         if (!enabled) {
             return;
         }
+        lockService.runWithLock("stale-machine-cleanup", lockTtl, this::deactivateStaleMissedMachinesLocked);
+    }
+
+    int deactivateStaleMissedMachinesLocked() {
         int deactivated = 0;
         LocalDateTime cutoff = LocalDateTime.now().minusDays(staleMachineDays);
         for (Machine machine : machineRepository.findByStatusAndUpdatedAtBefore(MachineStatus.HEARTBEAT_MISSED, cutoff)) {
@@ -113,6 +134,7 @@ public class LicenseOperationsScheduler {
         if (deactivated > 0) {
             log.info("Deactivated {} stale missed-heartbeat machines", deactivated);
         }
+        return deactivated;
     }
 
     @Scheduled(fixedDelayString = "${license.jobs.subscription-expiry-delay-ms:3600000}")
@@ -121,6 +143,10 @@ public class LicenseOperationsScheduler {
         if (!enabled) {
             return;
         }
+        lockService.runWithLock("subscription-expiry-sweep", lockTtl, this::expireSubscriptionsLocked);
+    }
+
+    int expireSubscriptionsLocked() {
         int expired = 0;
         for (var subscription : subscriptionRepository.findByStatusAndCurrentPeriodEndBefore(
                 SubscriptionStatus.ACTIVE, LocalDateTime.now())) {
@@ -133,5 +159,6 @@ public class LicenseOperationsScheduler {
         if (expired > 0) {
             log.info("Expired {} billing subscriptions", expired);
         }
+        return expired;
     }
 }

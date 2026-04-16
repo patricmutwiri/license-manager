@@ -1,0 +1,6 @@
+CREATE TABLE scheduler_locks (
+    name VARCHAR(120) PRIMARY KEY,
+    owner VARCHAR(120) NOT NULL,
+    locked_until TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

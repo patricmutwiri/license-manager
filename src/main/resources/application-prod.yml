@@ -67,6 +67,11 @@ license:
     redis-key-prefix: ${LICENSE_RATE_LIMIT_REDIS_KEY_PREFIX:license-manager:rate-limit}
     runtime-per-minute: ${LICENSE_RATE_LIMIT_RUNTIME_PER_MINUTE:120}
     fail-open: ${LICENSE_RATE_LIMIT_FAIL_OPEN:false}
+  jobs:
+    enabled: ${LICENSE_JOBS_ENABLED:true}
+    stale-machine-days: ${LICENSE_JOBS_STALE_MACHINE_DAYS:30}
+    lock-owner: ${LICENSE_JOBS_LOCK_OWNER:}
+    lock-ttl-seconds: ${LICENSE_JOBS_LOCK_TTL_SECONDS:240}
 
 logging:
   level:
