@@ -33,6 +33,11 @@ public class UserService extends DefaultOAuth2UserService {
         Map<String, Object> attributes = oauth2User.getAttributes();
         logger.debug("OAuth2 attributes: {}", attributes);
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        synchronizeUser(registrationId, attributes);
+        return oauth2User;
+    }
+
+    User synchronizeUser(String registrationId, Map<String, Object> attributes) {
         Object providerIdObj = attributes.get("sub") != null ? attributes.get("sub") : attributes.get("id");
         if (providerIdObj == null) {
             throw new RuntimeException("Provider ID not found in OAuth2 attributes");
@@ -47,14 +52,12 @@ public class UserService extends DefaultOAuth2UserService {
                     User newUser = new User();
                     newUser.setEmail(email);
                     Object nameObj = attributes.get("login") != null ? attributes.get("login") : attributes.get("name");
-                    newUser.setName(nameObj.toString());
+                    newUser.setName(nameObj == null ? providerId : nameObj.toString());
                     newUser.setProvider(registrationId);
                     newUser.setProviderId(providerId);
                     return userRepository.save(newUser);
-                });
+        });
         logger.info("User loaded: {}", user.getEmail());
-
-        // Return wrapped user if needed for custom authorities
-        return oauth2User;
+        return user;
     }
 }

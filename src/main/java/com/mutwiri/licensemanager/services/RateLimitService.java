@@ -88,6 +88,24 @@ public class RateLimitService {
         this.upstashToken = upstashToken;
     }
 
+    RateLimitService(int requestsPerMinute,
+            String redisKeyPrefix,
+            boolean failOpen,
+            RedisClient redisClient,
+            StatefulRedisConnection<String, String> redisConnection,
+            HttpClient upstashClient,
+            URI upstashBaseUri,
+            String upstashToken) {
+        this.requestsPerMinute = requestsPerMinute;
+        this.redisKeyPrefix = redisKeyPrefix;
+        this.failOpen = failOpen;
+        this.redisClient = redisClient;
+        this.redisConnection = redisConnection;
+        this.upstashClient = upstashClient;
+        this.upstashBaseUri = upstashBaseUri;
+        this.upstashToken = upstashToken;
+    }
+
     public void check(String key) {
         if (upstashClient != null) {
             checkUpstash(key);

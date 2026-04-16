@@ -6,14 +6,9 @@
 
 package com.mutwiri.licensemanager.controllers;
 
-import com.mutwiri.licensemanager.exceptions.ErrorResponse;
-import com.mutwiri.licensemanager.exceptions.ConflictException;
-import com.mutwiri.licensemanager.exceptions.ForbiddenException;
-import com.mutwiri.licensemanager.exceptions.InvalidLicenseRequestException;
-import com.mutwiri.licensemanager.exceptions.LicenseGenerationException;
-import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.extern.slf4j.Slf4j;
+import java.nio.file.AccessDeniedException;
+
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -21,7 +16,16 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import java.nio.file.AccessDeniedException;
+import com.mutwiri.licensemanager.exceptions.ConflictException;
+import com.mutwiri.licensemanager.exceptions.ErrorResponse;
+import com.mutwiri.licensemanager.exceptions.ForbiddenException;
+import com.mutwiri.licensemanager.exceptions.InvalidLicenseRequestException;
+import com.mutwiri.licensemanager.exceptions.LicenseGenerationException;
+import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
+
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Global exception handler for consistent error responses across the application.
@@ -35,34 +39,30 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
         log.warn("Resource not found: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("NOT_FOUND", ex.getMessage(), System.currentTimeMillis()));
+        return error(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request);
     }
 
     @ExceptionHandler(InvalidLicenseRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleInvalidLicenseRequest(InvalidLicenseRequestException ex) {
+    public ResponseEntity<ErrorResponse> handleInvalidLicenseRequest(InvalidLicenseRequestException ex, HttpServletRequest request) {
         log.warn("Invalid license request: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("INVALID_LICENSE_REQUEST", ex.getMessage(), System.currentTimeMillis()));
+        return error(HttpStatus.BAD_REQUEST, "INVALID_LICENSE_REQUEST", ex.getMessage(), request);
     }
 
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, HttpServletRequest request) {
         log.warn("Conflict: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse("CONFLICT", ex.getMessage(), System.currentTimeMillis()));
+        return error(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request);
     }
 
     @ExceptionHandler(ForbiddenException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex, HttpServletRequest request) {
         log.warn("Forbidden request: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("FORBIDDEN", ex.getMessage(), System.currentTimeMillis()));
+        return error(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), request);
     }
 
     /**
@@ -70,10 +70,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(LicenseGenerationException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<ErrorResponse> handleLicenseGenerationError(LicenseGenerationException ex) {
+    public ResponseEntity<ErrorResponse> handleLicenseGenerationError(LicenseGenerationException ex, HttpServletRequest request) {
         log.error("License generation failed: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("LICENSE_ERROR", ex.getMessage(), System.currentTimeMillis()));
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "LICENSE_ERROR", ex.getMessage(), request);
     }
 
     /**
@@ -81,10 +80,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(EntityNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
+    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex, HttpServletRequest request) {
         log.warn("Entity not found: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse("NOT_FOUND", "The requested resource could not be found.", System.currentTimeMillis()));
+        return error(HttpStatus.NOT_FOUND, "NOT_FOUND", "The requested resource could not be found.", request);
     }
 
     /**
@@ -92,13 +90,12 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleValidationError(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationError(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String message = ex.getBindingResult().getFieldError() != null
                 ? ex.getBindingResult().getFieldError().getDefaultMessage()
                 : "Validation failed";
         log.warn("Validation error: {}", message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("VALIDATION_ERROR", message, System.currentTimeMillis()));
+        return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message, request);
     }
 
     /**
@@ -106,10 +103,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         log.warn("Access denied: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ErrorResponse("FORBIDDEN", "You do not have permission to access this resource.", System.currentTimeMillis()));
+        return error(HttpStatus.FORBIDDEN, "FORBIDDEN", "You do not have permission to access this resource.", request);
     }
 
     /**
@@ -117,9 +113,19 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex, HttpServletRequest request) {
         log.error("Unexpected error occurred", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred. Please try again later.", System.currentTimeMillis()));
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
+                "An unexpected error occurred. Please try again later.", request);
+    }
+
+    private ResponseEntity<ErrorResponse> error(HttpStatus status, String code, String message, HttpServletRequest request) {
+        return ResponseEntity.status(status).body(new ErrorResponse(
+                code,
+                message,
+                status.value(),
+                request == null ? null : request.getRequestURI(),
+                MDC.get("requestId"),
+                System.currentTimeMillis()));
     }
 }

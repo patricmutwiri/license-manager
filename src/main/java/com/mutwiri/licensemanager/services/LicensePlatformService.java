@@ -469,6 +469,12 @@ public class LicensePlatformService {
     @Transactional
     public ApiPayloads.MachineResponse heartbeat(String licenseKey, ApiPayloads.HeartbeatRequest request) {
         License license = licenseByKey(licenseKey);
+        normalizeExpiry(license);
+        ApiPayloads.ValidationResponse state = validateLicenseState(license,
+                new ApiPayloads.ValidationRequest(licenseKey, null, null, request.fingerprint(), request.version()));
+        if (!state.valid()) {
+            throw new InvalidLicenseRequestException(state.detail());
+        }
         Machine machine = machineRepository.findByLicenseIdAndFingerprintHash(license.getId(), fingerprintHash(request.fingerprint()))
                 .orElseThrow(() -> new ResourceNotFoundException("Machine is not activated for this license."));
         machine.setLastSeenAt(LocalDateTime.now());
@@ -513,6 +519,9 @@ public class LicensePlatformService {
         License license = licenseByKey(request.key());
         Machine machine = machineRepository.findByLicenseIdAndFingerprintHash(license.getId(), fingerprintHash(request.fingerprint()))
                 .orElseThrow(() -> new ResourceNotFoundException("Machine must be activated before offline checkout."));
+        if (machine.getStatus() != MachineStatus.ACTIVE) {
+            throw new InvalidLicenseRequestException("Machine must be active before offline checkout.");
+        }
         ApiPayloads.ValidationResponse validation = validate(new ApiPayloads.ValidationRequest(
                 license.getKey(), null, null, request.fingerprint(), machine.getVersion()));
         if (!validation.valid()) {
