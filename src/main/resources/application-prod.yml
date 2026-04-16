@@ -7,9 +7,9 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
-      maximum-pool-size: ${SPRING_DATASOURCE_MAX_POOL_SIZE:10}
-      minimum-idle: ${SPRING_DATASOURCE_MIN_IDLE:2}
-      connection-timeout: ${SPRING_DATASOURCE_CONNECTION_TIMEOUT_MS:30000}
+      maximum-pool-size: ${SPRING_DATASOURCE_MAX_POOL_SIZE:5}
+      minimum-idle: ${SPRING_DATASOURCE_MIN_IDLE:1}
+      connection-timeout: ${SPRING_DATASOURCE_CONNECTION_TIMEOUT_MS:15000}
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -76,7 +76,7 @@ license:
 logging:
   level:
     root: INFO
-    com.mutwiri.licensemanager: INFO
+    com.mutwiri.licensemanager: DEBUG
     org.springframework.security: WARN
 
 management:
