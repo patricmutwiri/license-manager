@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  maven:
+    name: Maven quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Block committed secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE '(AVz1|balanced-hen|qiB\]|redis://default:|mail\.patric\.xyz|api@patric\.xyz|SUPABASE_SERVICE_ROLE|sb_secret_)' \
+            -- ':!target' ':!.git'; then
+            echo "::error::Potential committed secret detected."
+            exit 1
+          fi
+
+      - name: Test
+        run: mvn clean test

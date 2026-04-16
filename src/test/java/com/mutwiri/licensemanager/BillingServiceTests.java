@@ -12,6 +12,8 @@ import com.mutwiri.licensemanager.entities.BillingProvider;
 import com.mutwiri.licensemanager.entities.LicensingModel;
 import com.mutwiri.licensemanager.entities.OrganizationRole;
 import com.mutwiri.licensemanager.entities.UserRole;
+import com.mutwiri.licensemanager.exceptions.ConflictException;
+import com.mutwiri.licensemanager.exceptions.ResourceNotFoundException;
 import com.mutwiri.licensemanager.models.dto.ApiPayloads;
 import com.mutwiri.licensemanager.services.BillingService;
 import com.mutwiri.licensemanager.services.EmailService;
@@ -28,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -65,8 +68,26 @@ class BillingServiceTests {
 
         assertThat(plan.currency()).isEqualTo("USD");
         assertThat(subscription.organizationDomain()).isEqualTo("billing.example.com");
+        assertThat(billingService.listPlans(null)).extracting(ApiPayloads.BillingPlanResponse::code)
+                .contains("team-monthly");
         assertThat(billingService.listOrganizationSubscriptions(billingUser.id(), organization.id()))
                 .extracting(ApiPayloads.BillingSubscriptionResponse::planCode)
                 .contains("team-monthly");
+        assertThatThrownBy(() -> billingService.createPlan(null, new ApiPayloads.CreateBillingPlanRequest(
+                "team-monthly", "Team Monthly", policy.id(), 4900, "usd", BillingInterval.MONTHLY,
+                14, BillingProvider.INTERNAL, null, Map.of())))
+                .isInstanceOf(ConflictException.class);
+        assertThatThrownBy(() -> billingService.createPlan(null, new ApiPayloads.CreateBillingPlanRequest(
+                "missing-policy", "Missing Policy", 404L, 4900, "usd", BillingInterval.MONTHLY,
+                0, null, " price_blank ", null)))
+                .isInstanceOf(ResourceNotFoundException.class);
+        assertThatThrownBy(() -> billingService.createSubscription(null,
+                new ApiPayloads.CreateBillingSubscriptionRequest(404L, plan.id(), null, null,
+                        null, null, null, null, false)))
+                .isInstanceOf(ResourceNotFoundException.class);
+        assertThatThrownBy(() -> billingService.createSubscription(null,
+                new ApiPayloads.CreateBillingSubscriptionRequest(organization.id(), 404L, null, null,
+                        null, null, null, null, false)))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }
