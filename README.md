@@ -18,7 +18,7 @@ The platform now supports Keygen-like concepts: products, policies, licenses, ma
 - API-first admin/runtime flows with JSON responses.
 - Flyway-managed schema, scoped runtime client tokens, Redis-capable rate limiting, scheduled operations jobs, Prometheus metrics, and service coverage enforcement.
 - Billing-ready plan/subscription domain with provider integration points.
-- OpenAPI governance artifact, shell CLI, and Java runtime SDK starter.
+- Shell CLI and Java runtime SDK starter.
 
 ## Requirements
 
